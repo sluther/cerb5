@@ -6576,7 +6576,17 @@ class DAO_Task extends C4_ORMHelper {
 		$db->Execute($sql);
 		
 		self::update($id, $fields);
-		
+		$eventMgr = DevblocksPlatform::getEventService();
+		$eventMgr->trigger(
+			new Model_DevblocksEvent(
+				'task.create',
+				array(
+					'task_id' => $fields[self::ID],
+					'worker_id' => $fields[self::WORKER_ID],
+					'title' => $fields[self::TITLE]
+				)
+			)
+		);
 		return $id;
 	}
 	
