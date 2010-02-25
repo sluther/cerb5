@@ -1138,6 +1138,17 @@ class DAO_CrmOpportunity extends C4_ORMHelper {
 			$id
 		);
 		$db->Execute($sql);
+				$eventMgr->trigger(
+			new Model_DevblocksEvent(
+				'task.create',
+				array(
+					'task_id' => $fields[self::ID],
+					'worker_id' => $fields[self::WORKER_ID],
+					'name' => $fields[self::NAME],
+					'amount' => $fields[self::AMOUNT]
+				)
+			)
+		);
 		
 		self::update($id, $fields);
 		
