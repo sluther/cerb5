@@ -177,7 +177,7 @@ class ChGroupsPage extends CerberusPageExtension  {
 			$tpl->assign('ticket', $ticket);
 	
 			$messages = $ticket->getMessages();
-			$message = array_shift($messages); /* @var $message CerberusMessage */
+			$message = array_shift($messages); /* @var $message Model_Message */
 			$message_headers = $message->getHeaders();
 			$tpl->assign('message', $message);
 			$tpl->assign('message_headers', $message_headers);
@@ -472,13 +472,13 @@ class ChGroupsPage extends CerberusPageExtension  {
    		}
    		
 		$defaults = new C4_AbstractViewModel();
-		$defaults->class_name = 'C4_TicketView';
+		$defaults->class_name = 'View_Ticket';
 		$defaults->id = $view_id;
 		
 		$view = C4_AbstractViewLoader::getView($view_id, $defaults);
 		
 		if(!empty($view_id) && null != $view) {
-			/* @var $view C4_TicketView */
+			/* @var $view View_Ticket */
 
 			// Loop through all the tickets in this inbox
 	   		list($inbox_tickets, $null) = DAO_Ticket::search(
@@ -495,7 +495,7 @@ class ChGroupsPage extends CerberusPageExtension  {
 	   		);
 	   		
 	   		if(is_array($inbox_tickets))
-	   		foreach($inbox_tickets as $inbox_ticket) { /* @var $inbox_ticket CerberusTicket */
+	   		foreach($inbox_tickets as $inbox_ticket) { /* @var $inbox_ticket Model_Ticket */
 	   			// Run only this new rule against all tickets in the group inbox
 	   			CerberusApplication::runGroupRouting($group_id, intval($inbox_ticket[SearchFields_Ticket::TICKET_ID]), $id);
 	   		}

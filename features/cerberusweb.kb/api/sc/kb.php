@@ -10,9 +10,17 @@ class UmScKbController extends Extension_UmScController {
         return !empty($kb_roots);
 	}
 	
+	function renderSidebar(DevblocksHttpResponse $response) {
+		$tpl = DevblocksPlatform::getTemplateService();
+		
+		@$q = DevblocksPlatform::importGPC($_POST['q'],'string','');
+		$tpl->assign('q', $q);
+		
+		$tpl->display("devblocks:cerberusweb.kb:support_center/kb/sidebar.tpl:portal_".UmPortalHelper::getCode());
+	}
+	
 	function writeResponse(DevblocksHttpResponse $response) {
 		$tpl = DevblocksPlatform::getTemplateService();
-		$tpl_path = dirname(dirname(dirname(__FILE__))) . '/templates/';
 		
 		$umsession = UmPortalHelper::getSession();
 		$active_user = $umsession->getProperty('sc_login', null);
@@ -92,24 +100,32 @@ class UmScKbController extends Extension_UmScController {
 				$cats = DAO_KbArticle::getCategoriesByArticleId($id);
 
 				$breadcrumbs = array();
+				$trails = array();
 				foreach($cats as $cat_id) {
-					if(!isset($breadcrumbs[$cat_id]))
-						$breadcrumbs[$cat_id] = array();
 					$pid = $cat_id;
+					$trail = array();
 					while($pid) {
-						$breadcrumbs[$cat_id][] = $pid;
+						array_unshift($trail,$pid);
 						$pid = $categories[$pid]->parent_id;
 					}
-					$breadcrumbs[$cat_id] = array_reverse($breadcrumbs[$cat_id]);
 					
 					// Remove any breadcrumbs not in this SC profile
-					$pid = reset($breadcrumbs[$cat_id]);
-					if(!isset($kb_roots[$pid]))
-						unset($breadcrumbs[$cat_id]);
-					
+					if(isset($kb_roots[reset($trail)]))
+						$trails[] = $trail;
 				}
 				
-				$tpl->assign('breadcrumbs',$breadcrumbs);
+				// Remove redundant trails
+				foreach($trails as $idx => $trail) {
+					foreach($trails as $c_idx => $compare_trail) {
+						if($idx != $c_idx && count($compare_trail) >= count($trail)) {
+							if(array_slice($compare_trail,0,count($trail))==$trail) {
+								unset($trails[$idx]);
+							}
+						}
+					}
+				}
+				
+				$tpl->assign('breadcrumbs',$trails);
 				
 				$tpl->display("devblocks:cerberusweb.kb:support_center/kb/article.tpl:portal_".UmPortalHelper::getCode());
 				break;

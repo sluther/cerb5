@@ -559,7 +559,7 @@ class ChDisplayPage extends CerberusPageExtension {
 
 		@$ticket_team = $teams[$ticket->team_id];
 		
-		if(null != ($worker = CerberusApplication::getActiveWorker())) { /* @var $worker CerberusWorker */
+		if(null != ($worker = CerberusApplication::getActiveWorker())) { /* @var $worker Model_Worker */
 			/* [JAS]:
 			 * If the worker is replying to an unassigned ticket, assign it to them to warn
 			 * other workers.  By default the 'next worker' followup propery will revert back 
@@ -660,7 +660,7 @@ class ChDisplayPage extends CerberusPageExtension {
 		$message_sender_orgs = array();
 
 		// Loop messages
-		foreach($messages as $message_id => $message) { /* @var $message CerberusMessage */
+		foreach($messages as $message_id => $message) { /* @var $message Model_Message */
 			$key = $message->created_date . '_m' . $message_id;
 			// build a chrono index of messages
 			$convo_timeline[$key] = array('m',$message_id);
@@ -1030,7 +1030,7 @@ class ChDisplayPage extends CerberusPageExtension {
 		));
 		
 		// Reindex the original ticket (last wrote, etc.)
-		$last_message = end($messages); /* @var CerberusMessage $last_message */
+		$last_message = end($messages); /* @var Model_Message $last_message */
 		
 		DAO_Ticket::updateTicket($orig_ticket->id, array(
 			DAO_Ticket::LAST_WROTE_ID => $last_message->address_id
@@ -1092,7 +1092,7 @@ class ChDisplayPage extends CerberusPageExtension {
 		
 		// Defaults
 		$defaults = new C4_AbstractViewModel();
-		$defaults->class_name = 'C4_TicketView';
+		$defaults->class_name = 'View_Ticket';
 		$defaults->id = 'contact_history';
 		$defaults->name = $translate->_('addy_book.history.view.title');
 		$defaults->view_columns = array(
@@ -1186,7 +1186,7 @@ class ChDisplayPage extends CerberusPageExtension {
 		$tpl->assign('ticket', $ticket);
 		
 		$defaults = new C4_AbstractViewModel();
-		$defaults->class_name = 'C4_TaskView';
+		$defaults->class_name = 'View_Task';
 		$defaults->id = 'ticket_tasks';
 		$defaults->name = $translate->_('tasks.ticket.tab.view');
 		$defaults->view_columns = array(
