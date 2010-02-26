@@ -206,6 +206,28 @@ abstract class Extension_MailFilterAction extends DevblocksExtension {
 	function saveConfig() { return array(); }
 };
 
+abstract class Extension_MailRoutingCriteria extends DevblocksExtension {
+	function __construct($manifest) {
+		$this->DevblocksExtension($manifest);
+	}
+	
+	function matches(Model_MailToGroupRule $rule, CerberusParserMessage $message) {}
+	
+	function renderConfig(Model_MailToGroupRule $rule=null) {}
+	function saveConfig() { return array(); }
+};
+
+abstract class Extension_MailRoutingAction extends DevblocksExtension {
+	function __construct($manifest) {
+		$this->DevblocksExtension($manifest);
+	}
+	
+	function run(Model_MailToGroupRule $rule, CerberusParserMessage $message) {}
+	
+	function renderConfig(Model_MailToGroupRule $rule=null) {}
+	function saveConfig() { return array(); }
+};
+
 abstract class Extension_TaskSource extends DevblocksExtension {
 	const EXTENSION_POINT = 'cerberusweb.task.source';
 	
