@@ -524,7 +524,8 @@ class CerberusParser {
 		if(empty($id)) { // New Ticket
 			$sMask = CerberusApplication::generateTicketMask();
 			$groups = DAO_Group::getAll();
-		
+			// Load routing action manifests for reuse
+			$ext_action_mfts = DevblocksPlatform::getExtensions('cerberusweb.mail_routing.action', false);
 			// Routing new tickets
 			if(null != ($routing_rules = Model_MailToGroupRule::getMatches(
 				$fromAddressInst,
@@ -539,6 +540,18 @@ class CerberusParser {
 						
 						// We don't need to move again when running rule actions
 						unset($rule->actions['move']);
+					}
+					// Plugin mail routing actions
+					foreach($rule->actions as $action_key => $action)
+					{
+						if(isset($ext_action_mfts[$action_key])) {
+							if(null != (@$ext_action = $ext_action_mfts[$action_key]->createInstance())) {
+								try {
+									/* @var $ext_action Extension_MailRoutingAction */
+									$ext_action->run($rule, $message);
+								} catch(Exception $e) {	}
+							}
+						}
 					}
 				}
 			}

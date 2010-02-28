@@ -148,6 +148,16 @@
 {* Get Org Fields *}
 {include file="file:$core_tpl/internal/custom_fields/filters/peek_get_custom_fields.tpl" fields=$org_fields filter=$rule divName="divGetOrgFields" label="Sender organization"}
 
+{if is_array($routing_criteria_exts) && !empty($routing_criteria_exts)}
+{foreach from=$routing_criteria_exts item=routing_criteria_ext key=extid}
+{assign var=ext_crit value=$rule->criteria.$extid}
+<label><input type="checkbox" name="rules[]" value="{$extid}" {if !is_null($ext_crit)}checked="checked"{/if} onclick="toggleDiv('crit_{$extid}',(this.checked?'block':'none'));"> <b>{$routing_criteria_ext->manifest->name}</b></label><br>
+<blockquote style="margin:0px 0px 5px 10px;display:{if !is_null($ext_crit)}block{else}none{/if};" id="crit_{$extid}">
+	{if method_exists($routing_criteria_ext,'renderConfig')}{$routing_criteria_ext->renderConfig($rule)}{/if}
+</blockquote>
+{/foreach}
+{/if}
+
 <br>
 <h2>Then perform these actions:</h2>
 <table width="500">
@@ -222,6 +232,21 @@
 		</td>
 	</tr>
 	*}
+	{if is_array($routing_action_exts) && !empty($routing_action_exts)}
+	{foreach from=$routing_action_exts item=routing_action_ext key=extid}
+	<tr>
+		{assign var=ext_act value=$rule->actions.$extid}
+		<td valign="top">
+			<label><input type="checkbox" name="do[]" value="{$extid}" {if !is_null($ext_act)}checked="checked"{/if} onclick="toggleDiv('do_{$extid}',(this.checked?'block':'none'));"> <b>{$routing_action_ext->manifest->name}</b></label>
+		</td>
+		<td valign="top">
+			<blockquote style="margin:0px 0px 5px 10px;display:{if !is_null($ext_act)}block{else}none{/if};" id="do_{$extid}">
+				{if method_exists($routing_action_ext,'renderConfig')}{$routing_action_ext->renderConfig($rule)}{/if}
+			</blockquote>
+		</td>
+	</tr>
+	{/foreach}
+	{/if}
 </table>
 
 {* Set Ticket Fields *}

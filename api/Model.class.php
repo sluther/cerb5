@@ -1089,6 +1089,19 @@ class Model_MailToGroupRule {
 									break;
 							}
 						}
+						$ext_criteria_mfts = DevblocksPlatform::getExtensions('cerberusweb.mail_routing.criteria', false);
+						if(isset($ext_criteria_mfts[$crit_key])) { // criteria extensions
+							try {
+								$crit_ext = $ext_criteria_mfts[$crit_key]->createInstance();
+								if($crit_ext->matches($fromAddress, $message)) {
+									$passed++;
+									break;
+								}
+							} catch(Exception $e) {
+								// Oops!
+								//print_r($e);
+							}
+						}
 						break;
 				}
 			}
