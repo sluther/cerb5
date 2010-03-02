@@ -33,6 +33,21 @@
 <label><input type="checkbox" name="value_event[]" value="mail_incoming" {if isset($crit_event.mail_incoming)}checked="checked"{/if}> Incoming</label>
 <label><input type="checkbox" name="value_event[]" value="ticket_assignment" {if isset($crit_event.ticket_assignment)}checked="checked"{/if}> Assigned to self</label>
 <label><input type="checkbox" name="value_event[]" value="ticket_comment" {if isset($crit_event.ticket_comment)}checked="checked"{/if}> Comment</label>
+
+{if is_array($watcher_event_exts) && !empty($watcher_event_exts)}
+{foreach from=$watcher_event_exts item=watcher_event_ext key=extid}
+{assign var=ext_crit_event value=$rule->rules.$extid}
+
+{if isset($filter->event.$extid)}
+	{assign var=expanded value=true}
+{/if}
+
+		<label><input type="checkbox" name="value_event[]" value="{$extid}" {if isset($crit_event.$extid)}checked="checked"{/if} onclick="toggleDiv('crit_event_{$extid}',(this.checked?'block':'none'));"> <b>{$watcher_event_ext}</b></label>
+
+</blockquote>
+
+{/foreach}
+{/if}
 <br>
 <br>
 

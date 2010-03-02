@@ -684,6 +684,22 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
 		$org_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Org::ID);
 		$tpl->assign('org_fields', $org_fields);
 		
+		// Plugin events
+		$event_mfts = DevblocksPlatform::getExtensions('devblocks.listener.event', true);
+		$watcher_event_exts = array();
+	   	foreach($event_mfts as $event_mft) {
+    		// match custom here
+    		$regexp_eventlistener = DevblocksPlatform::strToRegExp('*.custom.listeners.watchers');
+    		if(preg_match($regexp_eventlistener, $event_mft->id)) {
+    			foreach($event_mft->manifest->params['events'][0] as $event_key => $event) {
+    				$regexp_event = DevblocksPLatform::strToRegExp('custom.event*');
+    				if(preg_match($regexp_event, $event_key)) {
+						$watcher_event_exts[$event_key] = $event;
+    				}
+    			}
+    		}
+    	}
+		$tpl->assign('watcher_event_exts', $watcher_event_exts);
 		$tpl->display('file:' . $this->_TPL_PATH . 'preferences/peek.tpl');
 	}
 	
