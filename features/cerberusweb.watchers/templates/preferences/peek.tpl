@@ -215,6 +215,20 @@
 		</td>
 	</tr>
 	{/section}
+	
+	{if is_array($watcher_criteria_exts) && !empty($watcher_criteria_exts)}
+	{foreach from=$watcher_criteria_exts item=watcher_criteria_ext key=extid}
+	{assign var=ext_crit value=$rule->criteria.$extid}
+	<tr>
+		<td valign="top">
+			<label><input type="checkbox" name="rules[]" value="{$extid}" {if !is_null($ext_crit)}checked="checked"{/if} onclick="toggleDiv('crit_{$extid}',(this.checked?'block':'none'));"> <b>{$watcher_criteria_exts->manifest->name}</b></label><br>
+	<blockquote style="margin:0px 0px 5px 10px;display:{if !is_null($ext_crit)}block{else}none{/if};" id="crit_{$extid}">
+		{if method_exists($watcher_criteria_exts,'renderConfig')}{$watcher_criteria_exts->renderConfig($rule)}{/if}
+	</blockquote>
+		</td>
+	</tr>
+	{/foreach}
+	{/if}
 </table>
 
 {* Get Address Fields *}

@@ -48,6 +48,8 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
      * @param Model_DevblocksEvent $event
      */
     function handleEvent(Model_DevblocksEvent $event) {
+    	
+    	
         switch($event->id) {
             case 'bucket.delete':
 				$this->_bucketDeleted($event);
@@ -76,6 +78,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
             case 'worker.delete':
 				$this->_workerDeleted($event);
             	break;
+            	
         }
     }
 
@@ -679,6 +682,9 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
 		// Custom Fields: Address
 		$address_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Address::ID);
 		$tpl->assign('address_fields', $address_fields);
+		
+		$watcher_criteria_exts = DevblocksPlatform::getExtensions('cerberusweb.watchers.criteria', false);
+		$tpl->assign('watcher_criteria_exts', $watcher_criteria_exts);
 		
 		// Custom Fields: Orgs
 		$org_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Org::ID);
@@ -1793,6 +1799,21 @@ class Model_WatcherMailFilter {
 									}
 									break;
 							}
+						}
+						
+						$ext_watcher_criteria_mfts = DevblocksPlatform::getExtensions('cerberusweb.watchers.criteria', false);
+						if(isset($ext_watcher_criteria_mfts[$rule_key])) {
+							try {
+								$watcher_crit_ext = $ext_watcher_criteria_mfts[$rule_key]->createInstance();
+								if($watcher_crit_ext->matches($ticket, $event)) {
+									$passed++;
+									break;
+								}
+							} catch(Exception $e) {
+								// catch exception here
+								
+							}
+							
 						}
 						break;
 				}
