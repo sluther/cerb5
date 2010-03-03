@@ -238,6 +238,22 @@
 {* Get Org Fields *}
 {include file="file:$core_tpl/internal/custom_fields/filters/peek_get_custom_fields.tpl" fields=$org_fields filter=$filter divName="divGetOrgFields" label="Sender organization"}
 
+{if is_array($watcher_criteria_exts) && !empty($watcher_criteria_exts)}
+{foreach from=$watcher_criteria_exts item=watcher_criteria_ext key=extid}
+{assign var=ext_crit value=$rule->rules.$extid}
+
+{if isset($filter->criteria.$extid)}
+	{assign var=expanded value=true}
+{/if}
+
+		<label><input type="checkbox" name="rules[]" value="{$extid}" {if $expanded}checked="checked"{/if} onclick="toggleDiv('crit_{$extid}',(this.checked?'block':'none'));"> <b>{$watcher_criteria_ext->manifest->name}</b></label><br>
+<blockquote style="margin:0px 0px 5px 10px;display:{if !is_null($ext_crit)}block{else}none{/if};" id="crit_{$extid}">
+	{if method_exists($watcher_criteria_exts,'renderConfig')}{$watcher_criteria_exts->renderConfig($rule)}{/if}
+</blockquote>
+
+{/foreach}
+{/if}
+
 <br>
 <h2>Then perform these actions:</h2>
 

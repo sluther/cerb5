@@ -700,6 +700,10 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
     		}
     	}
 		$tpl->assign('watcher_event_exts', $watcher_event_exts);
+		
+		// Plugin criteria
+		$watcher_criteria_exts = DevblocksPlatform::getExtensions('cerberusweb.watchers.criteria', true);
+		$tpl->assign('watcher_criteria_exts', $watcher_criteria_exts);
 		$tpl->display('file:' . $this->_TPL_PATH . 'preferences/peek.tpl');
 	}
 	
@@ -1809,6 +1813,21 @@ class Model_WatcherMailFilter {
 									}
 									break;
 							}
+						}
+						
+						$ext_watcher_criteria_mfts = DevblocksPlatform::getExtensions('cerberusweb.watchers.criteria', false);
+						if(isset($ext_watcher_criteria_mfts[$rule_key])) {
+							try {
+								$watcher_crit_ext = $ext_watcher_criteria_mfts[$rule_key]->createInstance();
+								if($watcher_crit_ext->matches($ticket, $event)) {
+									$passed++;
+									break;
+								}
+							} catch(Exception $e) {
+								// catch exception here
+								
+							}
+							
 						}
 						break;
 				}
