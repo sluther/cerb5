@@ -273,6 +273,18 @@
 
 <br>
 
+{if is_array($watcher_action_exts) && !empty($watcher_action_exts)}
+{foreach from=$watcher_action_exts item=watcher_action_ext key=extid}
+{assign var=ext_act value=$rule->action.$extid}
+
+		<label><input type="checkbox" name="do[]" value="{$extid}" {if !is_null($filter->actions.$extid)}checked="checked"{/if} onclick="toggleDiv('do_{$extid}',(this.checked?'block':'none'));"> <b>{$watcher_action_ext->manifest->name}</b></label><br>
+<blockquote style="margin:0px 0px 5px 10px;display:{if !is_null($ext_crit)}block{else}none{/if};" id="crit_{$extid}">
+	{if method_exists($watcher_action_exts,'renderConfig')}{$watcher_action_exts->renderConfig($rule)}{/if}
+</blockquote>
+
+{/foreach}
+{/if}
+
 <button type="button" onclick="genericAjaxPanelPostCloseReloadView('frmWatcherFilter', '{$view_id}');"><span class="cerb-sprite sprite-check"></span> {$translate->_('common.save_changes')}</button>
 </form>
 <br>

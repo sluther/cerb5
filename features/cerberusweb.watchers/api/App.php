@@ -78,7 +78,23 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
             	break;
         }
     }
+	
+    private function _runActions($filters, $object) {
 
+    	$ext_watcher_action_mfts = DevblocksPlatform::getExtensions('cerberusweb.watchers.action', false);
+    	foreach($filters as $filter) {
+    		foreach($filter->actions as $action_key => $action) {
+				if(isset($ext_watcher_action_mfts[$action_key])) {
+					if(null != (@$ext_watcher_action = $ext_watcher_action_mfts[$action_key]->createInstance())) {
+						try {
+							$ext_watcher_action->run($action, $object);
+						} catch(Exception $e) {	}
+					}
+				}
+			}
+    	}
+    }
+    
 	private function _getMailingListFromMatches($matches) {
 		$workers = DAO_Worker::getAllActive();
 		$helpdesk_senders = CerberusApplication::getHelpdeskSenders();
@@ -172,6 +188,10 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 			if($filter->worker_id == $worker_addy->worker_id)
 				unset($matches[$idx]);
 		}
+		
+		// (Action) Plugin actions:
+		
+		$this->_runActions($matches, $ticket);
 		
 		// (Action) Send Notification
 
@@ -299,6 +319,10 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 			)))
 				return;
 
+			// (Action) Plugin actions:
+			
+			$this->_runActions($matches, $ticket);
+			
 			// (Action) Send Notification
 
 			$this->_sendNotifications(
@@ -404,6 +428,10 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 			($is_inbound ? 'mail_incoming' : 'mail_outgoing')
 		)))
 			return;
+
+		// (Action) Plugin actions:
+		
+		$this->_runActions($matches, $ticket);
 		
 		// (Action) Send Notification
 		
@@ -704,6 +732,7 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
 		// Plugin criteria
 		$watcher_criteria_exts = DevblocksPlatform::getExtensions('cerberusweb.watchers.criteria', true);
 		$tpl->assign('watcher_criteria_exts', $watcher_criteria_exts);
+		
 		$tpl->display('file:' . $this->_TPL_PATH . 'preferences/peek.tpl');
 	}
 	
