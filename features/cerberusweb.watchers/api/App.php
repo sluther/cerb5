@@ -692,7 +692,7 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
     		$regexp_eventlistener = DevblocksPlatform::strToRegExp('*.custom.listeners.watchers');
     		if(preg_match($regexp_eventlistener, $event_mft->id)) {
     			foreach($event_mft->manifest->params['events'][0] as $event_key => $event) {
-    				$regexp_event = DevblocksPLatform::strToRegExp('custom.event*');
+    				$regexp_event = DevblocksPlatform::strToRegExp('custom.event*');
     				if(preg_match($regexp_event, $event_key)) {
 						$watcher_event_exts[$event_key] = $event;
     				}
