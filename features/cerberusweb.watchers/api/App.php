@@ -16,16 +16,16 @@ class ChWatchersConfigTab extends Extension_ConfigTab {
 		$tpl->assign('response_uri', 'config/watchers');
 		
 		$defaults = new C4_AbstractViewModel();
-		$defaults->class_name = 'View_WatcherMailFilter';
-		$defaults->id = View_WatcherMailFilter::DEFAULT_ID;
-		$defaults->renderSortBy = SearchFields_WatcherMailFilter::POS;
+		$defaults->class_name = 'View_WatcherFilter';
+		$defaults->id = View_WatcherFilter::DEFAULT_ID;
+		$defaults->renderSortBy = SearchFields_WatcherFilter::POS;
 		$defaults->renderSortAsc = 0;
 		
-		$view = C4_AbstractViewLoader::getView(View_WatcherMailFilter::DEFAULT_ID, $defaults);
+		$view = C4_AbstractViewLoader::getView(View_WatcherFilter::DEFAULT_ID, $defaults);
 		
 		$tpl->assign('view', $view);
-		$tpl->assign('view_fields', View_WatcherMailFilter::getFields());
-		$tpl->assign('view_searchable_fields', View_WatcherMailFilter::getSearchFields());
+		$tpl->assign('view_fields', View_WatcherFilter::getFields());
+		$tpl->assign('view_searchable_fields', View_WatcherFilter::getSearchFields());
 		
 		$tpl->display('file:' . $tpl_path . 'config/watchers/index.tpl');
 	}
@@ -87,7 +87,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 		
 		if(is_array($matches))
 		foreach($matches as $filter) {
-			if(!$filter instanceof Model_WatcherMailFilter)
+			if(!$filter instanceof Model_WatcherFilter)
 				continue;
 			
 			// If the worker no longer exists or is disabled
@@ -112,7 +112,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 
 	private function _sendNotifications($filters, $url, $msg) {
 		if(is_array($filters))
-		foreach($filters as $idx => $filter) { /* @var $filter Model_WatcherMailFilter */
+		foreach($filters as $idx => $filter) { /* @var $filter Model_WatcherFilter */
 			if(isset($filter->actions['notify'])) {
 				$fields = array(
 					DAO_WorkerEvent::CREATED_DATE => time(),
@@ -160,7 +160,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 			return;
 
 		// Find all our matching filters
-		if(empty($ticket) || false == ($matches = Model_WatcherMailFilter::getMatches(
+		if(empty($ticket) || false == ($matches = Model_WatcherFilter::getMatches(
 			$ticket,
 			'ticket_comment'
 		)))
@@ -292,7 +292,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 				continue;
 			
 			// Find all our matching filters
-			if(empty($ticket) || false == ($matches = Model_WatcherMailFilter::getMatches(
+			if(empty($ticket) || false == ($matches = Model_WatcherFilter::getMatches(
 				$ticket,
 				'ticket_assignment',
 				$next_worker_id
@@ -377,17 +377,17 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
     
     private function _workerDeleted($event) {
     	@$worker_ids = $event->params['worker_ids'];
-    	DAO_WatcherMailFilter::deleteByWorkerIds($worker_ids);
+    	DAO_WatcherFilter::deleteByWorkerIds($worker_ids);
     }
     
     private function _bucketDeleted($event) {
     	@$bucket_ids = $event->params['bucket_ids'];
-    	DAO_WatcherMailFilter::deleteByBucketIds($bucket_ids);
+    	DAO_WatcherFilter::deleteByBucketIds($bucket_ids);
     }
     
     private function _groupDeleted($event) {
     	@$group_ids = $event->params['group_ids'];
-    	DAO_WatcherMailFilter::deleteByGroupIds($group_ids);
+    	DAO_WatcherFilter::deleteByGroupIds($group_ids);
     }
     
     private function _sendForwards($event, $is_inbound) {
@@ -399,7 +399,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 		$ticket = DAO_Ticket::getTicket($ticket_id);
 
 		// Find all our matching filters
-		if(empty($ticket) || false == ($matches = Model_WatcherMailFilter::getMatches(
+		if(empty($ticket) || false == ($matches = Model_WatcherFilter::getMatches(
 			$ticket,
 			($is_inbound ? 'mail_incoming' : 'mail_outgoing')
 		)))
@@ -559,21 +559,21 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
 		$tpl->assign('response_uri', 'preferences/watchers');
 		
 		if(null == ($view = C4_AbstractViewLoader::getView('prefs_watchers'))) {
-			$view = new View_WatcherMailFilter();
+			$view = new View_WatcherFilter();
 			$view->id = 'prefs_watchers';
 			$view->name = "My Watcher Filters";
-			$view->renderSortBy = SearchFields_WatcherMailFilter::POS;
+			$view->renderSortBy = SearchFields_WatcherFilter::POS;
 			$view->renderSortAsc = 0;
 			$view->params = array(
-				SearchFields_WatcherMailFilter::WORKER_ID => new DevblocksSearchCriteria(SearchFields_WatcherMailFilter::WORKER_ID,'eq',$worker->id),
+				SearchFields_WatcherFilter::WORKER_ID => new DevblocksSearchCriteria(SearchFields_WatcherFilter::WORKER_ID,'eq',$worker->id),
 			);
 			
 			C4_AbstractViewLoader::setView($view->id, $view);
 		}
 		
 		$tpl->assign('view', $view);
-		$tpl->assign('view_fields', View_WatcherMailFilter::getFields());
-		$tpl->assign('view_searchable_fields', View_WatcherMailFilter::getSearchFields());
+		$tpl->assign('view_fields', View_WatcherFilter::getFields());
+		$tpl->assign('view_searchable_fields', View_WatcherFilter::getSearchFields());
 		
 		$tpl->display('file:' . $this->_TPL_PATH . 'preferences/watchers.tpl');
 	}
@@ -646,7 +646,7 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
 		
 		$active_worker = CerberusApplication::getActiveWorker();
 		
-		if(null != ($filter = DAO_WatcherMailFilter::get($id))) {
+		if(null != ($filter = DAO_WatcherFilter::get($id))) {
 			$tpl->assign('filter', $filter);
 		}
 		
@@ -879,21 +879,21 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
 		}
 
    		$fields = array(
-   			DAO_WatcherMailFilter::NAME => $name,
-   			DAO_WatcherMailFilter::IS_DISABLED => $is_disabled,
-   			DAO_WatcherMailFilter::WORKER_ID => $worker_id,
-   			DAO_WatcherMailFilter::CRITERIA_SER => serialize($criterion),
-   			DAO_WatcherMailFilter::ACTIONS_SER => serialize($actions),
+   			DAO_WatcherFilter::NAME => $name,
+   			DAO_WatcherFilter::IS_DISABLED => $is_disabled,
+   			DAO_WatcherFilter::WORKER_ID => $worker_id,
+   			DAO_WatcherFilter::CRITERIA_SER => serialize($criterion),
+   			DAO_WatcherFilter::ACTIONS_SER => serialize($actions),
    		);
 
    		// Create
    		if(empty($id)) {
-   			$fields[DAO_WatcherMailFilter::POS] = 0;
-	   		$id = DAO_WatcherMailFilter::create($fields);
+   			$fields[DAO_WatcherFilter::POS] = 0;
+	   		$id = DAO_WatcherFilter::create($fields);
 	   		
 	   	// Update
    		} else {
-   			DAO_WatcherMailFilter::update($id, $fields);
+   			DAO_WatcherFilter::update($id, $fields);
    		}
    		
 		exit;
@@ -914,27 +914,27 @@ class ChWatchersPreferences extends Extension_PreferenceTab {
 	
 };
 
-class View_WatcherMailFilter extends C4_AbstractView {
+class View_WatcherFilter extends C4_AbstractView {
 	const DEFAULT_ID = 'watchers';
 
 	function __construct() {
 		$this->id = self::DEFAULT_ID;
 		$this->name = 'Watchers';
 		$this->renderLimit = 25;
-		$this->renderSortBy = SearchFields_WatcherMailFilter::ID;
+		$this->renderSortBy = SearchFields_WatcherFilter::ID;
 		$this->renderSortAsc = true;
 
 		$this->view_columns = array(
-			SearchFields_WatcherMailFilter::CREATED,
-			SearchFields_WatcherMailFilter::WORKER_ID,
-			SearchFields_WatcherMailFilter::POS,
+			SearchFields_WatcherFilter::CREATED,
+			SearchFields_WatcherFilter::WORKER_ID,
+			SearchFields_WatcherFilter::POS,
 		);
 
 		$this->doResetCriteria();
 	}
 
 	function getData() {
-		$objects = DAO_WatcherMailFilter::search(
+		$objects = DAO_WatcherFilter::search(
 			array(),
 			$this->params,
 			$this->renderLimit,
@@ -966,20 +966,20 @@ class View_WatcherMailFilter extends C4_AbstractView {
 		$tpl->assign('id', $this->id);
 
 		switch($field) {
-			case SearchFields_WatcherMailFilter::NAME:
+			case SearchFields_WatcherFilter::NAME:
 				$tpl->display('file:' . APP_PATH . '/features/cerberusweb.core/templates/internal/views/criteria/__string.tpl');
 				break;
-			case SearchFields_WatcherMailFilter::ID:
-			case SearchFields_WatcherMailFilter::POS:
+			case SearchFields_WatcherFilter::ID:
+			case SearchFields_WatcherFilter::POS:
 				$tpl->display('file:' . APP_PATH . '/features/cerberusweb.core/templates/internal/views/criteria/__number.tpl');
 				break;
-			case SearchFields_WatcherMailFilter::CREATED:
+			case SearchFields_WatcherFilter::CREATED:
 				$tpl->display('file:' . APP_PATH . '/features/cerberusweb.core/templates/internal/views/criteria/__date.tpl');
 				break;
-			case SearchFields_WatcherMailFilter::IS_DISABLED:
+			case SearchFields_WatcherFilter::IS_DISABLED:
 				$tpl->display('file:' . APP_PATH . '/features/cerberusweb.core/templates/internal/views/criteria/__bool.tpl');
 				break;
-			case SearchFields_WatcherMailFilter::WORKER_ID:
+			case SearchFields_WatcherFilter::WORKER_ID:
 				$workers = DAO_Worker::getAll();
 				$tpl->assign('workers', $workers);
 				$tpl->display('file:' . APP_PATH . '/features/cerberusweb.core/templates/internal/views/criteria/__worker.tpl');
@@ -995,7 +995,7 @@ class View_WatcherMailFilter extends C4_AbstractView {
 		$values = !is_array($param->value) ? array($param->value) : $param->value;
 
 		switch($field) {
-			case SearchFields_WatcherMailFilter::WORKER_ID:
+			case SearchFields_WatcherFilter::WORKER_ID:
 				$workers = DAO_Worker::getAll();
 				$strings = array();
 
@@ -1018,18 +1018,18 @@ class View_WatcherMailFilter extends C4_AbstractView {
 	}
 
 	static function getFields() {
-		return SearchFields_WatcherMailFilter::getFields();
+		return SearchFields_WatcherFilter::getFields();
 	}
 
 	static function getSearchFields() {
 		$fields = self::getFields();
-		unset($fields[SearchFields_WatcherMailFilter::ID]);
+		unset($fields[SearchFields_WatcherFilter::ID]);
 		return $fields;
 	}
 
 	static function getColumns() {
 		$fields = self::getFields();
-		unset($fields[SearchFields_WatcherMailFilter::ID]);
+		unset($fields[SearchFields_WatcherFilter::ID]);
 		return $fields;
 	}
 
@@ -1037,7 +1037,7 @@ class View_WatcherMailFilter extends C4_AbstractView {
 		parent::doResetCriteria();
 		
 		$this->params = array(
-//			SearchFields_WatcherMailFilter::LOG_DATE => new DevblocksSearchCriteria(SearchFields_WatcherMailFilter::LOG_DATE,DevblocksSearchCriteria::OPER_BETWEEN,array('-1 month','now')),
+//			SearchFields_WatcherFilter::LOG_DATE => new DevblocksSearchCriteria(SearchFields_WatcherFilter::LOG_DATE,DevblocksSearchCriteria::OPER_BETWEEN,array('-1 month','now')),
 		);
 	}
 	
@@ -1045,7 +1045,7 @@ class View_WatcherMailFilter extends C4_AbstractView {
 		$criteria = null;
 
 		switch($field) {
-			case SearchFields_WatcherMailFilter::NAME:
+			case SearchFields_WatcherFilter::NAME:
 				// force wildcards if none used on a LIKE
 				if(($oper == DevblocksSearchCriteria::OPER_LIKE || $oper == DevblocksSearchCriteria::OPER_NOT_LIKE)
 				&& false === (strpos($value,'*'))) {
@@ -1053,19 +1053,19 @@ class View_WatcherMailFilter extends C4_AbstractView {
 				}
 				$criteria = new DevblocksSearchCriteria($field, $oper, $value);
 				break;
-			case SearchFields_WatcherMailFilter::ID:
-			case SearchFields_WatcherMailFilter::POS:
+			case SearchFields_WatcherFilter::ID:
+			case SearchFields_WatcherFilter::POS:
 				$criteria = new DevblocksSearchCriteria($field,$oper,$value);
 				break;
-			case SearchFields_WatcherMailFilter::WORKER_ID:
+			case SearchFields_WatcherFilter::WORKER_ID:
 				@$worker_id = DevblocksPlatform::importGPC($_REQUEST['worker_id'],'array',array());
 				$criteria = new DevblocksSearchCriteria($field,$oper,$worker_id);
 				break;
-			case SearchFields_WatcherMailFilter::IS_DISABLED:
+			case SearchFields_WatcherFilter::IS_DISABLED:
 				@$bool = DevblocksPlatform::importGPC($_REQUEST['bool'],'integer',1);
 				$criteria = new DevblocksSearchCriteria($field,$oper,$bool);
 				break;
-			case SearchFields_WatcherMailFilter::CREATED:
+			case SearchFields_WatcherFilter::CREATED:
 				@$from = DevblocksPlatform::importGPC($_REQUEST['from'],'string','');
 				@$to = DevblocksPlatform::importGPC($_REQUEST['to'],'string','');
 
@@ -1104,7 +1104,7 @@ class View_WatcherMailFilter extends C4_AbstractView {
 					if(2==$v) {
 						$do_delete = true;
 					} else {
-						$change_fields[DAO_WatcherMailFilter::IS_DISABLED] = (!empty($v)?1:0);
+						$change_fields[DAO_WatcherFilter::IS_DISABLED] = (!empty($v)?1:0);
 					}
 					break;
 				default:
@@ -1120,12 +1120,12 @@ class View_WatcherMailFilter extends C4_AbstractView {
 
 		if(empty($ids))
 		do {
-			list($objects,$null) = DAO_WatcherMailFilter::search(
+			list($objects,$null) = DAO_WatcherFilter::search(
 				array(),
 				$this->params,
 				100,
 				$pg++,
-				SearchFields_WatcherMailFilter::ID,
+				SearchFields_WatcherFilter::ID,
 				true,
 				false
 			);
@@ -1139,10 +1139,10 @@ class View_WatcherMailFilter extends C4_AbstractView {
 			$batch_ids = array_slice($ids,$x,100);
 			
 			if($do_delete) {
-				DAO_WatcherMailFilter::delete($batch_ids);
+				DAO_WatcherFilter::delete($batch_ids);
 				
 			} else {
-				DAO_WatcherMailFilter::update($batch_ids, $change_fields);
+				DAO_WatcherFilter::update($batch_ids, $change_fields);
 
 				// Custom Fields
 				//self::_doBulkSetCustomFields(ChCustomFieldSource_TimeEntry::ID, $custom_fields, $batch_ids);
@@ -1156,7 +1156,7 @@ class View_WatcherMailFilter extends C4_AbstractView {
 		
 };
 
-class DAO_WatcherMailFilter extends DevblocksORMHelper {
+class DAO_WatcherFilter extends DevblocksORMHelper {
 	const ID = 'id';
 	const POS = 'pos';
 	const NAME = 'name';
@@ -1171,7 +1171,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 		
 		$id = $db->GenID('generic_seq');
 		
-		$sql = sprintf("INSERT INTO watcher_mail_filter (id,created) ".
+		$sql = sprintf("INSERT INTO watcher_filter (id,created) ".
 			"VALUES (%d,%d)",
 			$id,
 			time()
@@ -1184,18 +1184,18 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 	}
 	
 	static function update($ids, $fields) {
-		parent::_update($ids, 'watcher_mail_filter', $fields);
+		parent::_update($ids, 'watcher_filter', $fields);
 	}
 	
 	/**
 	 * @param string $where
-	 * @return Model_WatcherMailFilter[]
+	 * @return Model_WatcherFilter[]
 	 */
 	static function getWhere($where=null) {
 		$db = DevblocksPlatform::getDatabaseService();
 		
 		$sql = "SELECT id, pos, name, created, is_disabled, worker_id, criteria_ser, actions_ser ".
-			"FROM watcher_mail_filter ".
+			"FROM watcher_filter ".
 			(!empty($where) ? sprintf("WHERE %s ",$where) : "").
 			"ORDER BY pos DESC";
 		$rs = $db->Execute($sql);
@@ -1205,7 +1205,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 
 	/**
 	 * @param integer $id
-	 * @return Model_WatcherMailFilter	 */
+	 * @return Model_WatcherFilter	 */
 	static function get($id) {
 		$objects = self::getWhere(sprintf("%s = %d",
 			self::ID,
@@ -1220,13 +1220,13 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 	
 	/**
 	 * @param resource $rs
-	 * @return Model_WatcherMailFilter[]
+	 * @return Model_WatcherFilter[]
 	 */
 	static private function _getObjectsFromResult($rs) {
 		$objects = array();
 		
 		while($row = mysql_fetch_assoc($rs)) {
-			$object = new Model_WatcherMailFilter();
+			$object = new Model_WatcherFilter();
 			$object->id = $row['id'];
 			$object->pos = $row['pos'];
 			$object->name = $row['name'];
@@ -1252,7 +1252,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 	
 	public static function increment($id) {
 		$db = DevblocksPlatform::getDatabaseService();
-		$db->Execute(sprintf("UPDATE watcher_mail_filter SET pos = pos + 1 WHERE id = %d",
+		$db->Execute(sprintf("UPDATE watcher_filter SET pos = pos + 1 WHERE id = %d",
 			$id
 		));
 	}
@@ -1266,7 +1266,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 		
 		$ids_list = implode(',', $ids);
 		
-		$db->Execute(sprintf("DELETE FROM watcher_mail_filter WHERE id IN (%s)", $ids_list));
+		$db->Execute(sprintf("DELETE FROM watcher_filter WHERE id IN (%s)", $ids_list));
 		
 		return true;
 	}
@@ -1277,7 +1277,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 			
 		$db = DevblocksPlatform::getDatabaseService();
 		
-		$sql = sprintf("DELETE FROM watcher_mail_filter WHERE %s", $where);
+		$sql = sprintf("DELETE FROM watcher_filter WHERE %s", $where);
 		$db->Execute($sql);
 	}
 
@@ -1312,9 +1312,9 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 			// If we changed the criteria of a filter, save it
 			if($changed) {
 				$fields = array(
-					DAO_WatcherMailFilter::CRITERIA_SER => serialize($filter->criteria),
+					DAO_WatcherFilter::CRITERIA_SER => serialize($filter->criteria),
 				);
-				DAO_WatcherMailFilter::update($filter->id, $fields);
+				DAO_WatcherFilter::update($filter->id, $fields);
 			}
 		}
 		
@@ -1343,9 +1343,9 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 			
 			if($changed) {
 				$fields = array(
-					DAO_WatcherMailFilter::CRITERIA_SER => serialize($filter->criteria),
+					DAO_WatcherFilter::CRITERIA_SER => serialize($filter->criteria),
 				);
-				DAO_WatcherMailFilter::update($filter->id, $fields);
+				DAO_WatcherFilter::update($filter->id, $fields);
 			}
 		}
 		
@@ -1365,7 +1365,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
      */
     static function search($columns, $params, $limit=10, $page=0, $sortBy=null, $sortAsc=null, $withCounts=true) {
 		$db = DevblocksPlatform::getDatabaseService();
-		$fields = SearchFields_WatcherMailFilter::getFields();
+		$fields = SearchFields_WatcherFilter::getFields();
 		
 		// Sanitize
 		if(!isset($fields[$sortBy]))
@@ -1381,16 +1381,16 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 			"wmf.created as %s, ".
 			"wmf.is_disabled as %s, ".
 			"wmf.worker_id as %s ",
-			    SearchFields_WatcherMailFilter::ID,
-			    SearchFields_WatcherMailFilter::POS,
-			    SearchFields_WatcherMailFilter::NAME,
-			    SearchFields_WatcherMailFilter::CREATED,
-			    SearchFields_WatcherMailFilter::IS_DISABLED,
-			    SearchFields_WatcherMailFilter::WORKER_ID
+			    SearchFields_WatcherFilter::ID,
+			    SearchFields_WatcherFilter::POS,
+			    SearchFields_WatcherFilter::NAME,
+			    SearchFields_WatcherFilter::CREATED,
+			    SearchFields_WatcherFilter::IS_DISABLED,
+			    SearchFields_WatcherFilter::WORKER_ID
 			 );
 		
 		$join_sql = 
-			"FROM watcher_mail_filter wmf "
+			"FROM watcher_filter wmf "
 		;
 			// [JAS]: Dynamic table joins
 //			(isset($tables['o']) ? "LEFT JOIN contact_org o ON (o.id=tt.debit_org_id)" : " ").
@@ -1426,7 +1426,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 			foreach($row as $f => $v) {
 				$result[$f] = $v;
 			}
-			$id = intval($row[SearchFields_WatcherMailFilter::ID]);
+			$id = intval($row[SearchFields_WatcherFilter::ID]);
 			$results[$id] = $result;
 		}
 
@@ -1447,7 +1447,7 @@ class DAO_WatcherMailFilter extends DevblocksORMHelper {
 	
 };
 
-class SearchFields_WatcherMailFilter {
+class SearchFields_WatcherFilter {
 	// Watcher_Mail_Filter
 	const ID = 'wmf_id';
 	const POS = 'wmf_pos';
@@ -1486,7 +1486,7 @@ class SearchFields_WatcherMailFilter {
 	}
 };
 
-class Model_WatcherMailFilter {
+class Model_WatcherFilter {
 	public $id;
 	public $pos;
 	public $name;
@@ -1497,291 +1497,299 @@ class Model_WatcherMailFilter {
 	public $actions;
 	
 	/**
-	 * @return Model_WatcherMailFilter[]|false
+	 * @return Model_WatcherFilter[]|false
 	 */
-	static function getMatches(Model_Ticket $ticket, $event, $only_worker_id=null) {
+	static function getMatches($object, $event, $only_worker_id=null) {
 		$matches = array();
-		
 		if(!empty($only_worker_id)) {
-			$filters = DAO_WatcherMailFilter::getWhere(sprintf("%s = %d AND %s = %d",
-				DAO_WatcherMailFilter::WORKER_ID,
+			$filters = DAO_WatcherFilter::getWhere(sprintf("%s = %d AND %s = %d",
+				DAO_WatcherFilter::WORKER_ID,
 				$only_worker_id,
-				DAO_WatcherMailFilter::IS_DISABLED,
+				DAO_WatcherFilter::IS_DISABLED,
 				0
 			));
 		} else {
-			$filters = DAO_WatcherMailFilter::getWhere(sprintf("%s = %d",
-				DAO_WatcherMailFilter::IS_DISABLED,
+			$filters = DAO_WatcherFilter::getWhere(sprintf("%s = %d",
+				DAO_WatcherFilter::IS_DISABLED,
 				0
 			));
 		}
-
-		// [JAS]: Don't send obvious spam to watchers.
-		if($ticket->spam_score >= 0.9000)
-			return false;
+		if($object instanceof Model_Ticket) {
+	
+			// [JAS]: Don't send obvious spam to watchers.
+			if($object->spam_score >= 0.9000)
+				return false;
+				
+			// Build our objects
+			$object_from = DAO_Address::get($object->last_wrote_address_id);
+			$object_group_id = $object->team_id;
 			
-		// Build our objects
-		$ticket_from = DAO_Address::get($ticket->last_wrote_address_id);
-		$ticket_group_id = $ticket->team_id;
-		
-		// [TODO] These expensive checks should only populate when needed
-		$messages = DAO_Ticket::getMessagesByTicket($ticket->id);
-		$message_headers = array();
-
-		if(empty($messages))
-			return false;
-		
-		if(null != (@$message_last = array_pop($messages))) { /* @var $message_last Model_Message */
-			$message_headers = $message_last->getHeaders();
-		}
-
-		// Clear the rest of the message manifests
-		unset($messages);
-		
-		$custom_fields = DAO_CustomField::getAll();
-		
-		// Lazy load when needed on criteria basis
-		$ticket_field_values = null;
-		$address_field_values = null;
-		$org_field_values = null;
-		
-		// Worker memberships (for checking permissions)
-		$workers = DAO_Worker::getAll();
-		$group_rosters = DAO_Group::getRosters();
-		
-		// Check filters
-		if(is_array($filters))
-		foreach($filters as $filter) { /* @var $filter Model_WatcherMailFilter */
-			$passed = 0;
-
-			// check the worker's group memberships
-			if(!isset($workers[$filter->worker_id]) // worker doesn't exist 
-				|| $workers[$filter->worker_id]->is_disabled // is disabled
-				|| (!$workers[$filter->worker_id]->is_superuser  // not a superuser, and...
-					&& !isset($group_rosters[$ticket->team_id][$filter->worker_id]))) { // no membership
-				continue;
+			// [TODO] These expensive checks should only populate when needed
+			$messages = DAO_Ticket::getMessagesByTicket($object->id);
+			$message_headers = array();
+	
+			if(empty($messages))
+				return false;
+			
+			if(null != (@$message_last = array_pop($messages))) { /* @var $message_last Model_Message */
+				$message_headers = $message_last->getHeaders();
 			}
-
-			// check criteria
-			foreach($filter->criteria as $rule_key => $rule) {
-				@$value = $rule['value'];
+	
+			// Clear the rest of the message manifests
+			unset($messages);
+			
+			$custom_fields = DAO_CustomField::getAll();
+			
+			// Lazy load when needed on criteria basis
+			$object_field_values = null;
+			$address_field_values = null;
+			$org_field_values = null;
+			
+			// Worker memberships (for checking permissions)
+			$workers = DAO_Worker::getAll();
+			$group_rosters = DAO_Group::getRosters();
+			
+			// Check filters
+			if(is_array($filters))
+			foreach($filters as $filter) { /* @var $filter Model_WatcherFilter */
+				$passed = 0;
+	
+				// check the worker's group memberships
+				if(!isset($workers[$filter->worker_id]) // worker doesn't exist 
+					|| $workers[$filter->worker_id]->is_disabled // is disabled
+					|| (!$workers[$filter->worker_id]->is_superuser  // not a superuser, and...
+						&& !isset($group_rosters[$object->team_id][$filter->worker_id]))) { // no membership
+					continue;
+				}
+	
+				// check criteria
+				foreach($filter->criteria as $rule_key => $rule) {
+					@$value = $rule['value'];
+								
+					switch($rule_key) {
+						case 'dayofweek':
+							$current_day = strftime('%w');
+							//$current_day = 1;
+	
+							// Forced to English abbrevs as indexes
+							$days = array('sun','mon','tue','wed','thu','fri','sat');
 							
-				switch($rule_key) {
-					case 'dayofweek':
-						$current_day = strftime('%w');
-						//$current_day = 1;
-
-						// Forced to English abbrevs as indexes
-						$days = array('sun','mon','tue','wed','thu','fri','sat');
-						
-						// Is the current day enabled?
-						if(isset($rule[$days[$current_day]])) {
-							$passed++;
-						}
+							// Is the current day enabled?
+							if(isset($rule[$days[$current_day]])) {
+								$passed++;
+							}
+								
+							break;
 							
-						break;
-						
-					case 'timeofday':
-						$current_hour = strftime('%H');
-						$current_min = strftime('%M');
-						//$current_hour = 17;
-						//$current_min = 5;
-
-						if(null != ($from_time = @$rule['from']))
-							list($from_hour, $from_min) = explode(':', $from_time);
-						
-						if(null != ($to_time = @$rule['to']))
-							if(list($to_hour, $to_min) = explode(':', $to_time));
-
-						// Do we need to wrap around to the next day's hours?
-						if($from_hour > $to_hour) { // yes
-							$to_hour += 24; // add 24 hrs to the destination (1am = 25th hour)
-						}
+						case 'timeofday':
+							$current_hour = strftime('%H');
+							$current_min = strftime('%M');
+							//$current_hour = 17;
+							//$current_min = 5;
+	
+							if(null != ($from_time = @$rule['from']))
+								list($from_hour, $from_min) = explode(':', $from_time);
 							
-						// Are we in the right 24 hourly range?
-						if((integer)$current_hour >= $from_hour && (integer)$current_hour <= $to_hour) {
-							// If we're in the first hour, are we minutes early?
-							if($current_hour==$from_hour && (integer)$current_min < $from_min)
-								break;
-							// If we're in the last hour, are we minutes late?
-							if($current_hour==$to_hour && (integer)$current_min > $to_min)
+							if(null != ($to_time = @$rule['to']))
+								if(list($to_hour, $to_min) = explode(':', $to_time));
+	
+							// Do we need to wrap around to the next day's hours?
+							if($from_hour > $to_hour) { // yes
+								$to_hour += 24; // add 24 hrs to the destination (1am = 25th hour)
+							}
+								
+							// Are we in the right 24 hourly range?
+							if((integer)$current_hour >= $from_hour && (integer)$current_hour <= $to_hour) {
+								// If we're in the first hour, are we minutes early?
+								if($current_hour==$from_hour && (integer)$current_min < $from_min)
+									break;
+								// If we're in the last hour, are we minutes late?
+								if($current_hour==$to_hour && (integer)$current_min > $to_min)
+									break;
+									
+								$passed++;
+							}
+							break;
+							
+						case 'event': 
+							if(!empty($event) && is_array($rule) && isset($rule[$event]))
+								$passed++;
+							break;					
+							
+						case 'groups':
+							if(null !== (@$group_buckets = $rule['groups'][$object->team_id]) // group is set
+								&& (empty($group_buckets) || in_array($object->category_id,$group_buckets)))
+									$passed++;
+							break;
+							
+						case 'next_worker_id':
+							// If it's an assigned event, we only care about the filter's owner
+							if(!empty($event) && 0==strcasecmp($event,'ticket_assignment')) {
+								if(intval($value)==intval($filter->worker_id)) {
+									$passed++;
+									break;
+								}
+							}
+	
+							if(intval($value)==intval($object->next_worker_id))
+								$passed++;
+							break;					
+	
+						case 'mask':
+							$regexp_mask = DevblocksPlatform::strToRegExp($value);
+							if(@preg_match($regexp_mask, $object->mask)) {
+								$passed++;
+							}
+							break;
+							
+						case 'from':
+							$regexp_from = DevblocksPlatform::strToRegExp($value);
+							if(@preg_match($regexp_from, $object_from->email)) {
+								$passed++;
+							}
+							break;
+							
+						case 'subject':
+							$regexp_subject = DevblocksPlatform::strToRegExp($value);
+							if(@preg_match($regexp_subject, $object->subject)) {
+								$passed++;
+							}
+							break;
+							
+						case 'body':
+							if(null == ($message_body = $message_last->getContent()))
 								break;
 								
-							$passed++;
-						}
-						break;
-						
-					case 'event': 
-						if(!empty($event) && is_array($rule) && isset($rule[$event]))
-							$passed++;
-						break;					
-						
-					case 'groups':
-						if(null !== (@$group_buckets = $rule['groups'][$ticket->team_id]) // group is set
-							&& (empty($group_buckets) || in_array($ticket->category_id,$group_buckets)))
-								$passed++;
-						break;
-						
-					case 'next_worker_id':
-						// If it's an assigned event, we only care about the filter's owner
-						if(!empty($event) && 0==strcasecmp($event,'ticket_assignment')) {
-							if(intval($value)==intval($filter->worker_id)) {
+							// Line-by-line body scanning (sed-like)
+							$lines = preg_split("/[\r\n]/", $message_body);
+							if(is_array($lines))
+							foreach($lines as $line) {
+								if(@preg_match($value, $line)) {
+									$passed++;
+									break;
+								}
+							}
+							break;
+							
+						case 'header1':
+						case 'header2':
+						case 'header3':
+						case 'header4':
+						case 'header5':
+							@$header = strtolower($rule['header']);
+	
+							if(empty($header)) {
 								$passed++;
 								break;
 							}
-						}
-
-						if(intval($value)==intval($ticket->next_worker_id))
-							$passed++;
-						break;					
-
-					case 'mask':
-						$regexp_mask = DevblocksPlatform::strToRegExp($value);
-						if(@preg_match($regexp_mask, $ticket->mask)) {
-							$passed++;
-						}
-						break;
-						
-					case 'from':
-						$regexp_from = DevblocksPlatform::strToRegExp($value);
-						if(@preg_match($regexp_from, $ticket_from->email)) {
-							$passed++;
-						}
-						break;
-						
-					case 'subject':
-						$regexp_subject = DevblocksPlatform::strToRegExp($value);
-						if(@preg_match($regexp_subject, $ticket->subject)) {
-							$passed++;
-						}
-						break;
-						
-					case 'body':
-						if(null == ($message_body = $message_last->getContent()))
+							
+							if(empty($value)) { // we're checking for null/blanks
+								if(!isset($message_headers[$header]) || empty($message_headers[$header])) {
+									$passed++;
+								}
+								
+							} elseif(isset($message_headers[$header]) && !empty($message_headers[$header])) {
+								$regexp_header = DevblocksPlatform::strToRegExp($value);
+								
+								// Flatten CRLF
+								if(@preg_match($regexp_header, str_replace(array("\r","\n"),' ',$message_headers[$header]))) {
+									$passed++;
+								}
+							}
+							
 							break;
 							
-						// Line-by-line body scanning (sed-like)
-						$lines = preg_split("/[\r\n]/", $message_body);
-						if(is_array($lines))
-						foreach($lines as $line) {
-							if(@preg_match($value, $line)) {
-								$passed++;
-								break;
-							}
-						}
-						break;
-						
-					case 'header1':
-					case 'header2':
-					case 'header3':
-					case 'header4':
-					case 'header5':
-						@$header = strtolower($rule['header']);
-
-						if(empty($header)) {
-							$passed++;
-							break;
-						}
-						
-						if(empty($value)) { // we're checking for null/blanks
-							if(!isset($message_headers[$header]) || empty($message_headers[$header])) {
-								$passed++;
-							}
-							
-						} elseif(isset($message_headers[$header]) && !empty($message_headers[$header])) {
-							$regexp_header = DevblocksPlatform::strToRegExp($value);
-							
-							// Flatten CRLF
-							if(@preg_match($regexp_header, str_replace(array("\r","\n"),' ',$message_headers[$header]))) {
-								$passed++;
-							}
-						}
-						
-						break;
-						
-					default: // ignore invalids
-						// Custom Fields
-						if(0==strcasecmp('cf_',substr($rule_key,0,3))) {
-							$field_id = substr($rule_key,3);
-
-							// Make sure it exists
-							if(null == (@$field = $custom_fields[$field_id]))
-								continue;
-
-							// Lazy values loader
-							$field_values = array();
-							switch($field->source_extension) {
-								case ChCustomFieldSource_Address::ID:
-									if(null == $address_field_values)
-										$address_field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Address::ID, $ticket_from->id));
-									$field_values =& $address_field_values;
-									break;
-								case ChCustomFieldSource_Org::ID:
-									if(null == $org_field_values)
-										$org_field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Org::ID, $ticket_from->contact_org_id));
-									$field_values =& $org_field_values;
-									break;
-								case ChCustomFieldSource_Ticket::ID:
-									if(null == $ticket_field_values)
-										$ticket_field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Ticket::ID, $ticket->id));
-									$field_values =& $ticket_field_values;
-									break;
-							}
-							
-							// Type sensitive value comparisons
-							// [TODO] Operators
-							switch($field->type) {
-								case 'S': // string
-								case 'T': // clob
-								case 'U': // URL
-									$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : '';
-									$oper = isset($rule['oper']) ? $rule['oper'] : "=";
-									
-									if($oper == "=" && @preg_match(DevblocksPlatform::strToRegExp($value, true), $field_val))
-										$passed++;
-									elseif($oper == "!=" && @!preg_match(DevblocksPlatform::strToRegExp($value, true), $field_val))
-										$passed++;
-									break;
-								case 'N': // number
-									$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : 0;
-									$oper = isset($rule['oper']) ? $rule['oper'] : "=";
-									
-									if($oper=="=" && intval($field_val)==intval($value))
-										$passed++;
-									elseif($oper=="!=" && intval($field_val)!=intval($value))
-										$passed++;
-									elseif($oper==">" && intval($field_val) > intval($value))
-										$passed++;
-									elseif($oper=="<" && intval($field_val) < intval($value))
-										$passed++;
-									break;
-								case 'E': // date
-									$field_val = isset($field_values[$field_id]) ? intval($field_values[$field_id]) : 0;
-									$from = isset($rule['from']) ? $rule['from'] : "0";
-									$to = isset($rule['to']) ? $rule['to'] : "now";
-									
-									if(intval(@strtotime($from)) <= $field_val && intval(@strtotime($to)) >= $field_val) {
-										$passed++;
-									}
-									break;
-								case 'C': // checkbox
-									$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : 0;
-									if(intval($value)==intval($field_val))
-										$passed++;
-									break;
-								case 'D': // dropdown
-								case 'X': // multi-checkbox
-								case 'M': // multi-picklist
-								case 'W': // worker
-									$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : array();
-									if(!is_array($value)) $value = array($value);
+						default: // ignore invalids
+							// Custom Fields
+							if(0==strcasecmp('cf_',substr($rule_key,0,3))) {
+								$field_id = substr($rule_key,3);
+	
+								// Make sure it exists
+								if(null == (@$field = $custom_fields[$field_id]))
+									continue;
+	
+								// Lazy values loader
+								$field_values = array();
+								switch($field->source_extension) {
+									case ChCustomFieldSource_Address::ID:
+										if(null == $address_field_values)
+											$address_field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Address::ID, $object_from->id));
+										$field_values =& $address_field_values;
+										break;
+									case ChCustomFieldSource_Org::ID:
+										if(null == $org_field_values)
+											$org_field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Org::ID, $object_from->contact_org_id));
+										$field_values =& $org_field_values;
+										break;
+									case ChCustomFieldSource_Ticket::ID:
+										if(null == $object_field_values)
+											$object_field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Ticket::ID, $object->id));
+										$field_values =& $object_field_values;
+										break;
+								}
+								
+								// Type sensitive value comparisons
+								// [TODO] Operators
+								switch($field->type) {
+									case 'S': // string
+									case 'T': // clob
+									case 'U': // URL
+										$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : '';
+										$oper = isset($rule['oper']) ? $rule['oper'] : "=";
 										
-									if(is_array($field_val)) { // if multiple things set
-										foreach($field_val as $v) { // loop through possible
-											if(isset($value[$v])) { // is any possible set?
+										if($oper == "=" && @preg_match(DevblocksPlatform::strToRegExp($value, true), $field_val))
+											$passed++;
+										elseif($oper == "!=" && @!preg_match(DevblocksPlatform::strToRegExp($value, true), $field_val))
+											$passed++;
+										break;
+									case 'N': // number
+										$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : 0;
+										$oper = isset($rule['oper']) ? $rule['oper'] : "=";
+										
+										if($oper=="=" && intval($field_val)==intval($value))
+											$passed++;
+										elseif($oper=="!=" && intval($field_val)!=intval($value))
+											$passed++;
+										elseif($oper==">" && intval($field_val) > intval($value))
+											$passed++;
+										elseif($oper=="<" && intval($field_val) < intval($value))
+											$passed++;
+										break;
+									case 'E': // date
+										$field_val = isset($field_values[$field_id]) ? intval($field_values[$field_id]) : 0;
+										$from = isset($rule['from']) ? $rule['from'] : "0";
+										$to = isset($rule['to']) ? $rule['to'] : "now";
+										
+										if(intval(@strtotime($from)) <= $field_val && intval(@strtotime($to)) >= $field_val) {
+											$passed++;
+										}
+										break;
+									case 'C': // checkbox
+										$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : 0;
+										if(intval($value)==intval($field_val))
+											$passed++;
+										break;
+									case 'D': // dropdown
+									case 'X': // multi-checkbox
+									case 'M': // multi-picklist
+									case 'W': // worker
+										$field_val = isset($field_values[$field_id]) ? $field_values[$field_id] : array();
+										if(!is_array($value)) $value = array($value);
+											
+										if(is_array($field_val)) { // if multiple things set
+											foreach($field_val as $v) { // loop through possible
+												if(isset($value[$v])) { // is any possible set?
+													$passed++;
+													break;
+												}
+											}
+											
+										} else { // single
+											if(isset($value[$field_val])) { // is our set field in possibles?
 												$passed++;
 												break;
 											}
+											
 										}
 										
 									} else { // single
@@ -1795,20 +1803,24 @@ class Model_WatcherMailFilter {
 							}
 						}
 						break;
+					}
+				}
+				
+				// If our rule matched every criteria, stop and return the filter
+				if($passed == count($filter->criteria)) {
+					DAO_WatcherFilter::increment($filter->id); // ++ the times we've matched
+					$matches[$filter->id] = $filter;
 				}
 			}
+
+			if(!empty($matches))
+				return $matches;
 			
-			// If our rule matched every criteria, stop and return the filter
-			if($passed == count($filter->criteria)) {
-				DAO_WatcherMailFilter::increment($filter->id); // ++ the times we've matched
-				$matches[$filter->id] = $filter;
-			}
+			// No matches
+			return false;
+		} else {
+			// not a ticket object
+			
 		}
-		
-		if(!empty($matches))
-			return $matches;
-		
-		// No matches
-		return false;
 	}
 };
