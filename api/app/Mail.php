@@ -55,13 +55,13 @@ class CerberusMail {
 		$settings = DevblocksPlatform::getPluginSettingsService();
 
 		return array(
-			'host' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_HOST,'localhost'),
-			'port' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_PORT,'25'),
+			'host' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_HOST,CerberusSettingsDefaults::SMTP_HOST),
+			'port' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_PORT,CerberusSettingsDefaults::SMTP_PORT),
 			'auth_user' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_USER,null),
 			'auth_pass' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_PASS,null),
-			'enc' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_ENCRYPTION_TYPE,'None'),
-			'max_sends' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_MAX_SENDS,20),
-			'timeout' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_TIMEOUT,30),
+			'enc' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_ENCRYPTION_TYPE,CerberusSettingsDefaults::SMTP_ENCRYPTION_TYPE),
+			'max_sends' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_MAX_SENDS,CerberusSettingsDefaults::SMTP_MAX_SENDS),
+			'timeout' => $settings->get('cerberusweb.core',CerberusSettings::SMTP_TIMEOUT,CerberusSettingsDefaults::SMTP_TIMEOUT),
 		);
 	}
 	
@@ -74,10 +74,10 @@ class CerberusMail {
 		    $settings = DevblocksPlatform::getPluginSettingsService();
 		    
 		    if(empty($from_addy))
-				@$from_addy = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM, $_SERVER['SERVER_ADMIN']);
+				@$from_addy = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM, CerberusSettingsDefaults::DEFAULT_REPLY_FROM);
 		    
 		    if(empty($from_personal))
-				@$from_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,'');
+				@$from_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,CerberusSettingsDefaults::DEFAULT_REPLY_PERSONAL);
 			
 			$mail->setTo(array($to));
 			$mail->setFrom(array($from_addy => $from_personal));
@@ -122,8 +122,8 @@ class CerberusMail {
 		$worker = CerberusApplication::getActiveWorker();
 		
 		$settings = DevblocksPlatform::getPluginSettingsService();
-		$default_from = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM);
-		$default_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL);
+		$default_from = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM,CerberusSettingsDefaults::DEFAULT_REPLY_FROM);
+		$default_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,CerberusSettingsDefaults::DEFAULT_REPLY_PERSONAL);
 		
 		$team_from = DAO_GroupSettings::get($team_id,DAO_GroupSettings::SETTING_REPLY_FROM,'');
 		$team_personal = DAO_GroupSettings::get($team_id,DAO_GroupSettings::SETTING_REPLY_PERSONAL,'');
@@ -284,7 +284,7 @@ class CerberusMail {
 	        DAO_Message::CREATED_DATE => time(),
 	        DAO_Message::ADDRESS_ID => $fromAddressId,
 	        DAO_Message::IS_OUTGOING => 1,
-	        DAO_Message::WORKER_ID => (!empty($worker->id) ? $worker->id : 0)
+	        DAO_Message::WORKER_ID => (!empty($worker->id) ? $worker->id : 0),
 	    );
 		$message_id = DAO_Message::create($fields);
 	    
@@ -294,7 +294,7 @@ class CerberusMail {
 		));
 		
 		// Content
-	    DAO_MessageContent::create($message_id, $content);
+		Storage_MessageContent::put($message_id, $content);
 
 		// Set recipients to requesters
 		foreach($toList as $to) {
@@ -310,10 +310,7 @@ class CerberusMail {
 		}
 		
 		// add files to ticket
-		// [TODO] redundant with parser (like most of the rest of this function)
 		if (is_array($files) && !empty($files)) {
-			$attachment_path = APP_STORAGE_PATH . '/attachments/';
-		
 			reset($files);
 			foreach ($files['tmp_name'] as $idx => $file) {
 				if(empty($file) || empty($files['name'][$idx]) || !file_exists($file))
@@ -323,28 +320,14 @@ class CerberusMail {
 					DAO_Attachment::MESSAGE_ID => $message_id,
 					DAO_Attachment::DISPLAY_NAME => $files['name'][$idx],
 					DAO_Attachment::MIME_TYPE => $files['type'][$idx],
-					DAO_Attachment::FILE_SIZE => filesize($file)
 				);
 				$file_id = DAO_Attachment::create($fields);
-				
-	            $attachment_bucket = sprintf("%03d/",
-	                mt_rand(1,100)
-	            );
-	            $attachment_file = $file_id;
-	            
-	            if(!file_exists($attachment_path.$attachment_bucket)) {
-	                mkdir($attachment_path.$attachment_bucket, 0775, true);
-	            }
 
-	            if(!is_writeable($attachment_path.$attachment_bucket)) {
-	            	echo "Can't write to " . $attachment_path.$attachment_bucket . "<BR>";
-	            }
-	            
-	            copy($file, $attachment_path.$attachment_bucket.$attachment_file);
+				$storage_key = $storage->put('attachments', $file_id, file_get_contents($file));
 	            @unlink($file);
 			    
 			    DAO_Attachment::update($file_id, array(
-			        DAO_Attachment::FILEPATH => $attachment_bucket.$attachment_file
+			        DAO_Attachment::STORAGE_KEY => $storage_key,
 			    ));
 			}
 		}
@@ -397,8 +380,8 @@ class CerberusMail {
 	    $settings = DevblocksPlatform::getPluginSettingsService();
 	    $helpdesk_senders = CerberusApplication::getHelpdeskSenders();
 	    
-		@$from_addy = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM, $_SERVER['SERVER_ADMIN']);
-		@$from_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,'');
+		@$from_addy = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM, CerberusSettingsDefaults::DEFAULT_REPLY_FROM);
+		@$from_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,CerberusSettingsDefaults::DEFAULT_REPLY_PERSONAL);
 	    // [TODO] If we still don't have a $from_addy we need a graceful failure. 
 		
 		/*
@@ -436,7 +419,7 @@ class CerberusMail {
 		    @$worker_id = $properties['agent_id'];
 		    @$subject = $properties['subject'];
 		    
-			$message = DAO_Ticket::getMessage($reply_message_id);
+			$message = DAO_Message::get($reply_message_id);
 	        $message_headers = DAO_MessageHeader::getAll($reply_message_id);		
 			$ticket_id = $message->ticket_id;
 			$ticket = DAO_Ticket::getTicket($ticket_id);
@@ -611,13 +594,11 @@ class CerberusMail {
 	
 			// Forward Attachments
 			if(!empty($forward_files) && is_array($forward_files)) {
-				$attachments_path = APP_STORAGE_PATH . '/attachments/';
-				
 				foreach($forward_files as $file_id) {
 					$attachment = DAO_Attachment::get($file_id);
-					$attachment_path = $attachments_path . $attachment->filepath;
-					
-					$mail->attach(Swift_Attachment::fromPath($attachment_path)->setFilename($attachment->display_name));
+					$contents = $attachment->getFileContents();
+					$mail->attach(Swift_Attachment::newInstance($contents, $attachment->display_name, $attachment->mime_type));
+					//unset($contents); // [TODO] ?
 				}
 			}
 			
@@ -666,7 +647,7 @@ class CerberusMail {
 			$message_id = DAO_Message::create($fields);
 		    
 			// Content
-		    DAO_MessageContent::create($message_id, $content);
+			Storage_MessageContent::put($message_id, $content);
 		    
 			$headers = $mail->getHeaders();
 			
@@ -680,40 +661,23 @@ class CerberusMail {
 		    
 			// Attachments
 			if (is_array($files) && !empty($files)) {
-				$attachment_path = APP_STORAGE_PATH . '/attachments/';
-			
 				reset($files);
 				foreach ($files['tmp_name'] as $idx => $file) {
 					if(empty($file) || empty($files['name'][$idx]) || !file_exists($file))
 						continue;
-						
+
+					// Create record
 					$fields = array(
 						DAO_Attachment::MESSAGE_ID => $message_id,
 						DAO_Attachment::DISPLAY_NAME => $files['name'][$idx],
 						DAO_Attachment::MIME_TYPE => $files['type'][$idx],
-						DAO_Attachment::FILE_SIZE => filesize($file)
 					);
 					$file_id = DAO_Attachment::create($fields);
-					
-		            $attachment_bucket = sprintf("%03d/",
-		                mt_rand(1,100)
-		            );
-		            $attachment_file = $file_id;
-		            
-		            if(!file_exists($attachment_path.$attachment_bucket)) {
-		                mkdir($attachment_path.$attachment_bucket, 0775, true);
-		            }
-	
-		            if(!is_writeable($attachment_path.$attachment_bucket)) {
-		            	echo "Can't write to bucket " . $attachment_path.$attachment_bucket . "<BR>";
-		            }
-		            
-		            copy($file, $attachment_path.$attachment_bucket.$attachment_file);
+
+					$contents = file_get_contents($file);
 		            @unlink($file);
-				    
-				    DAO_Attachment::update($file_id, array(
-				        DAO_Attachment::FILEPATH => $attachment_bucket.$attachment_file
-				    ));
+		            
+		            Storage_Attachments::put($file_id, $contents);
 				}
 			}
 			
@@ -809,8 +773,8 @@ class CerberusMail {
 			$mail = $mail_service->createMessage();
 	
 		    $settings = DevblocksPlatform::getPluginSettingsService();
-			@$from_addy = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM, $_SERVER['SERVER_ADMIN']);
-			@$from_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,'');
+			@$from_addy = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM, CerberusSettingsDefaults::DEFAULT_REPLY_FROM);
+			@$from_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,CerberusSettingsDefaults::DEFAULT_REPLY_PERSONAL);
 			
 			$mail->setTo(array($to));
 

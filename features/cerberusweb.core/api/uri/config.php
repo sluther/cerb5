@@ -102,6 +102,26 @@ class ChConfigurationPage extends CerberusPageExtension  {
 		$license = CerberusLicense::getInstance();
 		$tpl->assign('license', $license);
 		
+		$tpl->display('file:' . $this->_TPL_PATH . 'configuration/tabs/settings/index.tpl');
+	}
+	
+	function showTabStorageAction() {
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('path', $this->_TPL_PATH);
+		
+		// Scope
+		
+		$storage_engines = DevblocksPlatform::getExtensions('devblocks.storage.engine', false, true);
+		$tpl->assign('storage_engines', $storage_engines);
+
+		$storage_profiles = DAO_DevblocksStorageProfile::getAll();
+		$tpl->assign('storage_profiles', $storage_profiles);
+
+		$storage_schemas = DevblocksPlatform::getExtensions('devblocks.storage.schema', true, true);
+		$tpl->assign('storage_schemas', $storage_schemas);
+		
+		// Totals
+		
 		$db = DevblocksPlatform::getDatabaseService();
 		$rs = $db->Execute("SHOW TABLE STATUS");
 
@@ -109,7 +129,6 @@ class ChConfigurationPage extends CerberusPageExtension  {
 		$total_db_data = 0;
 		$total_db_indexes = 0;
 		$total_db_slack = 0;
-		$total_file_size = 0;
 		
 		// [TODO] This would likely be helpful to the /debug controller
 		
@@ -127,16 +146,188 @@ class ChConfigurationPage extends CerberusPageExtension  {
 		
 		mysql_free_result($rs);
 		
-		$sql = "SELECT SUM(file_size) FROM attachment";
-		$total_file_size = intval($db->GetOne($sql));
-
-		$tpl->assign('total_db_size', number_format($total_db_size/1048576,2));
-		$tpl->assign('total_db_data', number_format($total_db_data/1048576,2));
-		$tpl->assign('total_db_indexes', number_format($total_db_indexes/1048576,2));
-		$tpl->assign('total_db_slack', number_format($total_db_slack/1048576,2));
-		$tpl->assign('total_file_size', number_format($total_file_size/1048576,2));
+		$tpl->assign('total_db_size', $total_db_size);
+		$tpl->assign('total_db_data', $total_db_data);
+		$tpl->assign('total_db_indexes', $total_db_indexes);
+		$tpl->assign('total_db_slack', $total_db_slack);
 		
-		$tpl->display('file:' . $this->_TPL_PATH . 'configuration/tabs/settings/index.tpl');
+		// View
+		
+		$tpl->assign('response_uri', 'config/storage');
+
+		$defaults = new C4_AbstractViewModel();
+		$defaults->class_name = 'View_DevblocksStorageProfile';
+		$defaults->id = View_DevblocksStorageProfile::DEFAULT_ID;
+
+		$view = C4_AbstractViewLoader::getView(View_DevblocksStorageProfile::DEFAULT_ID, $defaults);
+		$tpl->assign('view', $view);
+		$tpl->assign('view_fields', View_DevblocksStorageProfile::getFields());
+		$tpl->assign('view_searchable_fields', View_DevblocksStorageProfile::getSearchFields());
+		
+		$tpl->display('file:' . $this->_TPL_PATH . 'configuration/tabs/storage/index.tpl');		
+	}
+	
+	function showStorageProfilePeekAction() {
+		@$id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string','');
+		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('path', $this->_TPL_PATH);
+		$tpl->assign('view_id', $view_id);
+		
+		// Storage engines
+		
+		$engines = DevblocksPlatform::getExtensions('devblocks.storage.engine', false);
+		$tpl->assign('engines', $engines);
+		
+		// Profile
+		
+		if(null == ($profile = DAO_DevblocksStorageProfile::get($id)))
+			$profile = new Model_DevblocksStorageProfile();
+			
+		$tpl->assign('profile', $profile);
+		
+		if(!empty($profile->id)) {
+			$storage_ext_id = $profile->extension_id;
+		} else {
+			$storage_ext_id = 'devblocks.storage.engine.disk';
+		}
+		
+		if(false !== ($storage_ext = DevblocksPlatform::getExtension($storage_ext_id, true))) {
+			$tpl->assign('storage_engine', $storage_ext);
+		}
+		
+		$tpl->display('file:' . $this->_TPL_PATH . 'configuration/tabs/storage/profiles/peek.tpl');
+	}
+	
+	function showStorageProfileConfigAction() {
+		@$ext_id = DevblocksPlatform::importGPC($_REQUEST['ext_id'],'string','');
+		@$id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
+		
+		if(null == ($profile = DAO_DevblocksStorageProfile::get($id)))
+			$profile = new Model_DevblocksStorageProfile();
+		
+		if(!empty($ext_id)) {
+			if(null != ($ext = DevblocksPlatform::getExtension($ext_id, true))) {
+				if($ext instanceof Extension_DevblocksStorageEngine) {
+					$ext->renderConfig($profile);
+				}
+			}
+		}
+	}
+	
+	function testStorageProfilePeekAction() {
+		@$extension_id = DevblocksPlatform::importGPC($_POST['extension_id'],'string','');
+
+		if(empty($extension_id) 
+			|| null == ($ext = $ext = DevblocksPlatform::getExtension($extension_id, true)))
+			return false;
+			
+		/* @var $ext Extension_DevblocksStorageEngine */
+			
+		if($ext->testConfig()) {
+			echo "PASS!!";
+		} else {
+			echo "FAIL!!!";
+		}
+	}
+	
+	function saveStorageProfilePeekAction() {
+		$translate = DevblocksPlatform::getTranslationService();
+		//$active_worker = PortSensorApplication::getActiveWorker();
+		
+		// [TODO] ACL
+		// return;
+		
+		@$id = DevblocksPlatform::importGPC($_POST['id'],'integer');
+		@$view_id = DevblocksPlatform::importGPC($_POST['view_id'],'string');
+		@$name = DevblocksPlatform::importGPC($_POST['name'],'string');
+		@$extension_id = DevblocksPlatform::importGPC($_POST['extension_id'],'string');
+//		@$delete = DevblocksPlatform::importGPC($_POST['do_delete'],'integer',0);
+
+		// [TODO] The superuser set bit here needs to be protected by ACL
+		
+		if(empty($name)) $name = "New Storage Profile";
+		
+		if(!empty($id) && !empty($delete)) {
+//			DAO_DevblocksStorageProfile::delete($id);
+			
+		} else {
+		    $fields = array(
+		    	DAO_DevblocksStorageProfile::NAME => $name,
+		    );
+
+			if(empty($id)) {
+				$fields[DAO_DevblocksStorageProfile::EXTENSION_ID] = $extension_id;
+				
+				$id = DAO_DevblocksStorageProfile::create($fields);
+				
+			} else {
+				DAO_DevblocksStorageProfile::update($id, $fields);
+			}
+			
+			// Save sensor extension config
+			if(!empty($extension_id)) {
+				if(null != ($ext = DevblocksPlatform::getExtension($extension_id, true))) {
+					if(null != ($profile = DAO_DevblocksStorageProfile::get($id))
+					 && $ext instanceof Extension_DevblocksStorageEngine) {
+						$ext->saveConfig($profile);
+					}
+				}
+			}
+				
+			// Custom field saves
+			//@$field_ids = DevblocksPlatform::importGPC($_POST['field_ids'], 'array', array());
+			//DAO_CustomFieldValue::handleFormPost(PsCustomFieldSource_Sensor::ID, $id, $field_ids);
+		}
+		
+		if(!empty($view_id)) {
+			$view = Ps_AbstractViewLoader::getView($view_id);
+			$view->render();
+		}		
+	}
+	
+	function showStorageSchemaAction() {
+		@$ext_id = DevblocksPlatform::importGPC($_REQUEST['ext_id'],'string','');
+		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('path', $this->_TPL_PATH);
+		
+		$storage_engines = DevblocksPlatform::getExtensions('devblocks.storage.engine', false, true);
+		$tpl->assign('storage_engines', $storage_engines);
+		
+		$storage_profiles = DAO_DevblocksStorageProfile::getAll();
+		$tpl->assign('storage_profiles', $storage_profiles);
+		
+		$extension = DevblocksPlatform::getExtension($ext_id, true, true);
+		$tpl->assign('schema', $extension);
+		
+		$tpl->display('file:' . $this->_TPL_PATH . 'configuration/tabs/storage/schemas/display.tpl');
+	}
+	
+	function showStorageSchemaPeekAction() {
+		@$ext_id = DevblocksPlatform::importGPC($_REQUEST['ext_id'],'string','');
+		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('path', $this->_TPL_PATH);
+		
+		$extension = DevblocksPlatform::getExtension($ext_id, true, true);
+		$tpl->assign('schema', $extension);
+		
+		$storage_profiles = DAO_DevblocksStorageProfile::getAll();
+		$tpl->assign('storage_profiles', $storage_profiles);
+		
+		$tpl->display('file:' . $this->_TPL_PATH . 'configuration/tabs/storage/schemas/peek.tpl');
+	}
+	
+	function saveStorageSchemaPeekAction() {
+		@$ext_id = DevblocksPlatform::importGPC($_REQUEST['ext_id'],'string','');
+		
+		$extension = DevblocksPlatform::getExtension($ext_id, true, true);
+		/* @var $extension Extension_DevblocksStorageSchema */
+		$extension->saveConfig();
+		
+		$this->showStorageSchemaAction();
 	}
 	
 	// Ajax
@@ -212,94 +403,7 @@ class ChConfigurationPage extends CerberusPageExtension  {
 		$view->render();
 		return;
 	}
-		
-//	function doAttachmentsSyncAction() {
-//		if(null != ($active_worker = CerberusApplication::getActiveWorker()) 
-//			&& $active_worker->is_superuser) {
-//				
-//			// Try to grab as many resources as we can
-//			@ini_set('memory_limit','128M');
-//			@set_time_limit(0);
-//			
-//			$db = DevblocksPlatform::getDatabaseService();
-//			$attachment_path = APP_PATH . '/storage/attachments/';
-//			
-//			// Look up all our valid file ids
-//			$sql = sprintf("SELECT id,filepath FROM attachment");
-//			$rs = $db->Execute($sql);
-//			
-//			// Build a hash of valid ids
-//			$valid_ids_set = array();
-//			
-//			while($row = mysql_fetch_assoc($rs)) {
-//		        $valid_ids_set[intval($row['id'])] = $row['filepath'];
-//			}
-//			
-//			$total_files_db = count($valid_ids_set);
-//			
-//			// Get all our attachment hash directories
-//			$dir_handles = glob($attachment_path.'*',GLOB_ONLYDIR|GLOB_NOSORT);
-//			
-//			$orphans = 0;
-//			$checked = 0;
-//			
-//			// Loop through all our hash directories and check that IDs are valid
-//			if(!empty($dir_handles))
-//			foreach($dir_handles as $dir) {
-//		        $dirinfo = pathinfo($dir);
-//		
-//		        if(!is_numeric($dirinfo['basename']))
-//		                continue;
-//		
-//		        if(false == ($dh = opendir($dir)))
-//	                die("Couldn't open " . $dir);
-//		
-//		        while($file = readdir($dh)) {
-//	                // Skip dirs and files we can't change
-//	                if(is_dir($file))
-//                        continue;
-//	
-//	                $info = pathinfo($file);
-//	                $disk_file_id = $info['filename'];
-//	
-//	                // Only numeric filenames are valid
-//	                if(!is_numeric($disk_file_id))
-//                        continue;
-//	
-//	                if(!isset($valid_ids_set[$disk_file_id])) {
-//                        $orphans++;
-//
-//                        //if(DO_DELETE_FILES)
-//						unlink($dir . DIRECTORY_SEPARATOR . $file);
-//	
-//	                } else {
-//                        unset($valid_ids_set[$disk_file_id]);
-//	                }
-//	                $checked++;
-//		        }
-//		        closedir($dh);
-//			}
-//			
-//			$db_orphans = count($valid_ids_set);
-//			
-//	        foreach($valid_ids_set as $db_id => $null) {
-//                $db->Execute(sprintf("DELETE FROM attachment WHERE id = %d", $db_id));
-//	        }
-//			
-//			$tpl = DevblocksPlatform::getTemplateService();
-//			$tpl->assign('path', $this->_TPL_PATH);
-//	        
-//	        $tpl->assign('checked', $checked);
-//	        $tpl->assign('total_files_db', $total_files_db);
-//	        $tpl->assign('orphans', $orphans);
-//	        $tpl->assign('db_orphans', $db_orphans);
-//	        
-//	        $tpl->display('file:' . $this->_TPL_PATH . 'configuration/tabs/attachments/cleanup_output.tpl');
-//		}
-//
-//		exit;
-//	}
-	
+
 	// Ajax
 	function showTabWorkersAction() {
 		$tpl = DevblocksPlatform::getTemplateService();
@@ -391,8 +495,8 @@ class ChConfigurationPage extends CerberusPageExtension  {
 					// Creating new worker.  If password is empty, email it to them
 				    if(empty($password)) {
 				    	$settings = DevblocksPlatform::getPluginSettingsService();
-						$replyFrom = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM);
-						$replyPersonal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL, '');
+						$replyFrom = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM,CerberusSettingsDefaults::DEFAULT_REPLY_FROM);
+						$replyPersonal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL,CerberusSettingsDefaults::DEFAULT_REPLY_PERSONAL);
 						$url = DevblocksPlatform::getUrlService();
 				    	
 						$password = CerberusApplication::generatePassword(8);
@@ -571,18 +675,18 @@ class ChConfigurationPage extends CerberusPageExtension  {
 		$settings = DevblocksPlatform::getPluginSettingsService();
 		$mail_service = DevblocksPlatform::getMailService();
 		
-		$smtp_host = $settings->get('cerberusweb.core',CerberusSettings::SMTP_HOST,'');
-		$smtp_port = $settings->get('cerberusweb.core',CerberusSettings::SMTP_PORT,25);
-		$smtp_auth_enabled = $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_ENABLED,false);
+		$smtp_host = $settings->get('cerberusweb.core',CerberusSettings::SMTP_HOST,CerberusSettingsDefaults::SMTP_HOST);
+		$smtp_port = $settings->get('cerberusweb.core',CerberusSettings::SMTP_PORT,CerberusSettingsDefaults::SMTP_PORT);
+		$smtp_auth_enabled = $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_ENABLED,CerberusSettingsDefaults::SMTP_AUTH_ENABLED);
 		if ($smtp_auth_enabled) {
-			$smtp_auth_user = $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_USER,'');
-			$smtp_auth_pass = $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_PASS,''); 
+			$smtp_auth_user = $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_USER,CerberusSettingsDefaults::SMTP_AUTH_USER);
+			$smtp_auth_pass = $settings->get('cerberusweb.core',CerberusSettings::SMTP_AUTH_PASS,CerberusSettingsDefaults::SMTP_AUTH_PASS); 
 		} else {
 			$smtp_auth_user = '';
 			$smtp_auth_pass = ''; 
 		}
-		$smtp_enc = $settings->get('cerberusweb.core',CerberusSettings::SMTP_ENCRYPTION_TYPE,'None');
-		$smtp_max_sends = $settings->get('cerberusweb.core',CerberusSettings::SMTP_MAX_SENDS,'20');
+		$smtp_enc = $settings->get('cerberusweb.core',CerberusSettings::SMTP_ENCRYPTION_TYPE,CerberusSettingsDefaults::SMTP_ENCRYPTION_TYPE);
+		$smtp_max_sends = $settings->get('cerberusweb.core',CerberusSettings::SMTP_MAX_SENDS,CerberusSettingsDefaults::SMTP_MAX_SENDS);
 		
 		$pop3_accounts = DAO_Mail::getPop3Accounts();
 		$tpl->assign('pop3_accounts', $pop3_accounts);
@@ -1112,6 +1216,7 @@ class ChConfigurationPage extends CerberusPageExtension  {
         DevblocksPlatform::readPlugins();
 		
 		$plugins = DevblocksPlatform::getPluginRegistry();
+		unset($plugins['devblocks.core']);
 		unset($plugins['cerberusweb.core']);
 		$tpl->assign('plugins', $plugins);
 		
@@ -1147,7 +1252,7 @@ class ChConfigurationPage extends CerberusPageExtension  {
 		$tpl->assign('workers', $workers);
 		
 		// Permissions enabled
-		$acl_enabled = $settings->get('cerberusweb.core',CerberusSettings::ACL_ENABLED);
+		$acl_enabled = $settings->get('cerberusweb.core',CerberusSettings::ACL_ENABLED,CerberusSettingsDefaults::ACL_ENABLED);
 		$tpl->assign('acl_enabled', $acl_enabled);
 		
 		if(empty($license) || (!empty($license)&&isset($license['a'])))

@@ -110,4 +110,85 @@ if(isset($tables['fnr_query_seq'])) {
 	$db->Execute('DROP TABLE fnr_query_seq');
 }
 
+// ===========================================================================
+// Migrate to attachment storage service
+
+list($columns, $indexes) = $db->metaTable('attachment');
+
+if(isset($columns['filepath'])) {
+	$db->Execute("ALTER TABLE attachment CHANGE COLUMN filepath storage_key VARCHAR(255) DEFAULT '' NOT NULL");
+}
+
+if(isset($columns['file_size'])) {
+	$db->Execute("ALTER TABLE attachment CHANGE COLUMN file_size storage_size INT UNSIGNED DEFAULT 0 NOT NULL");
+}
+
+if(!isset($columns['storage_extension'])) {
+	$db->Execute("ALTER TABLE attachment ADD COLUMN storage_extension VARCHAR(255) DEFAULT '' NOT NULL");
+	$db->Execute("UPDATE attachment SET storage_extension='devblocks.storage.engine.disk' WHERE storage_extension=''");
+}
+
+// ===========================================================================
+// Migrate message content to storage service
+
+if(isset($tables['message_content'])) {
+	$db->Execute("RENAME TABLE message_content TO storage_message_content");
+	$db->Execute("ALTER TABLE storage_message_content DROP INDEX content");
+	$db->Execute("ALTER TABLE storage_message_content CHANGE COLUMN message_id id int unsigned default '0' not null");
+	$db->Execute("ALTER TABLE storage_message_content CHANGE COLUMN content data longblob");
+
+	unset($tables['message_content']);
+	$tables['storage_message_content'] = 'storage_message_content'; 
+}
+
+// Add storage columns to 'message'
+list($columns, $indexes) = $db->metaTable('message');
+
+
+if(!isset($columns['storage_extension'])) {
+	$db->Execute("ALTER TABLE message ADD COLUMN storage_extension VARCHAR(255) DEFAULT '' NOT NULL");
+	$db->Execute("ALTER TABLE message ADD INDEX storage_extension (storage_extension)");
+}
+$db->Execute("UPDATE message SET storage_extension='devblocks.storage.engine.database' WHERE storage_extension=''");
+
+if(!isset($columns['storage_key'])) {
+	$db->Execute("ALTER TABLE message ADD COLUMN storage_key VARCHAR(255) DEFAULT '' NOT NULL");
+}
+
+if(!isset($columns['storage_size'])) {
+	$db->Execute("ALTER TABLE message ADD COLUMN storage_size INT UNSIGNED DEFAULT 0 NOT NULL");
+	$db->Execute("UPDATE message, storage_message_content SET message.storage_size = LENGTH(storage_message_content.data) WHERE message.id=storage_message_content.id");
+}
+
+$db->Execute("UPDATE message SET storage_key=id WHERE storage_key = '' AND storage_extension='devblocks.storage.engine.database'");
+
+// ===========================================================================
+// Enable storage manager scheduled task and give defaults
+
+if(null != ($cron = DevblocksPlatform::getExtension('cron.storage', true, true))) {
+	$cron->setParam(CerberusCronPageExtension::PARAM_ENABLED, true);
+	$cron->setParam(CerberusCronPageExtension::PARAM_DURATION, '1');
+	$cron->setParam(CerberusCronPageExtension::PARAM_TERM, 'h');
+	$cron->setParam(CerberusCronPageExtension::PARAM_LASTRUN, strtotime('Yesterday 22:15'));
+}
+
+// ===========================================================================
+// Migrate storage_extension fields to storage_profile_id
+
+// Attachments
+list($columns, $indexes) = $db->metaTable('attachment');
+
+if(!isset($columns['storage_profile_id'])) {
+	$db->Execute("ALTER TABLE attachment ADD COLUMN storage_profile_id INT UNSIGNED DEFAULT 0 NOT NULL");
+	$db->Execute("ALTER TABLE attachment ADD INDEX storage_profile_id (storage_profile_id)");
+}
+
+// Message Content
+list($columns, $indexes) = $db->metaTable('message');
+
+if(!isset($columns['storage_profile_id'])) {
+	$db->Execute("ALTER TABLE message ADD COLUMN storage_profile_id INT UNSIGNED DEFAULT 0 NOT NULL");
+	$db->Execute("ALTER TABLE message ADD INDEX storage_profile_id (storage_profile_id)");
+}
+
 return TRUE;

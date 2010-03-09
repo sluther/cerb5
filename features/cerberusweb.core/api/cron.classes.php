@@ -2,7 +2,7 @@
 /***********************************************************************
  | Cerberus Helpdesk(tm) developed by WebGroup Media, LLC.
  |-----------------------------------------------------------------------
- | All source code & content (c) Copyright 2007, WebGroup Media LLC
+ | All source code & content (c) Copyright 2010, WebGroup Media LLC
  |   unless specifically noted otherwise.
  |
  | This source code is released under the Cerberus Public License.
@@ -104,7 +104,7 @@ class ParseCron extends CerberusCronPageExtension {
 		unset($files);
 		unset($subdirs);
 	  
-		$logger->info("[Parser] Total Runtime: ".((microtime(true)-$runtime)*1000)." ms");
+		$logger->info("[Parser] Total Runtime: ".number_format((microtime(true)-$runtime)*1000,2)." ms");
 	}
 
 	function _parseFile($full_filename) {
@@ -362,7 +362,7 @@ class ImportCron extends CerberusCronPageExtension {
 		unset($files);
 		unset($subdirs);
 
-		$logger->info("[Importer] Total Runtime: ".((microtime(true)-$runtime)*1000)." ms");
+		$logger->info("[Importer] Total Runtime: ".number_format((microtime(true)-$runtime)*1000,2)." ms");
 		
 		@imap_errors();
 	}
@@ -739,20 +739,13 @@ class ImportCron extends CerberusCronPageExtension {
 				$fields = array(
 					DAO_Attachment::MESSAGE_ID => $email_id,
 					DAO_Attachment::DISPLAY_NAME => $sFileName,
-					DAO_Attachment::FILE_SIZE => intval($sFileSize),
-					DAO_Attachment::FILEPATH => '',
 					DAO_Attachment::MIME_TYPE => $sMimeType,
 				);
 				$file_id = DAO_Attachment::create($fields);
 				
-				// Write file to disk using ID (Model)
-				$file_path = Model_Attachment::saveToFile($file_id, $sFileContent);
+				// Write file to storage
+				Storage_Attachments::put($file_id, $sFileContent);
 				unset($sFileContent);
-				
-				// Update attachment table
-				DAO_Attachment::update($file_id, array(
-					DAO_Attachment::FILEPATH => $file_path
-				));
 			}
 			
 			// Create message content
@@ -768,7 +761,7 @@ class ImportCron extends CerberusCronPageExtension {
 			}				
 			unset($sMessageContentB64);
 			
-			DAO_MessageContent::create($email_id, $sMessageContent);
+			Storage_MessageContent::put($email_id, $sMessageContent);
 			unset($sMessageContent);
 
 			// Headers
@@ -1080,7 +1073,7 @@ class Pop3Cron extends CerberusCronPageExtension {
 			// [TODO] Make this an account setting?
 			$total = min($max_downloads,$check->Nmsgs);
 			 
-			$logger->info('[POP3] Init time: '.((microtime(true)-$runtime)*1000)," ms");
+			$logger->info('[POP3] Init time: '.number_format((microtime(true)-$runtime)*1000,2)," ms");
 
 			$runtime = microtime(true);
 
@@ -1136,7 +1129,7 @@ class Pop3Cron extends CerberusCronPageExtension {
 			imap_close($mailbox);
 			imap_errors();
 			 
-			$logger->info("[POP3] Total Runtime: ".((microtime(true)-$runtime)*1000)." ms");
+			$logger->info("[POP3] Total Runtime: ".number_format((microtime(true)-$runtime)*1000,2)." ms");
 		}
 	}
 
@@ -1185,7 +1178,45 @@ class ParseCronFileBuffer extends ParserFile {
 		$this->file_size += fwrite($this->fp, $chunk);
 		//        echo $chunk;
 	}
+};
 
+class StorageCron extends CerberusCronPageExtension {
+	function run() {
+		$logger = DevblocksPlatform::getConsoleLog();
+		$runtime = microtime(true);
+		
+		$logger->info("[Storage] Starting...");
+
+		$max_runtime = time() + 120; // 2 mins into the future
+		
+		// Synchronize storage schemas (active+archive)
+		$storage_schemas = DevblocksPlatform::getExtensions('devblocks.storage.schema', true);
+		foreach($storage_schemas as $schema) { /* @var $schema Extension_DevblocksStorageSchema */
+			if($max_runtime > time())
+				$schema->unarchive($max_runtime);
+			if($max_runtime > time())
+				$schema->archive($max_runtime);
+		}
+		
+		$logger->info("[Storage] Total Runtime: ".number_format((microtime(true)-$runtime)*1000,2)." ms");
+	}
+	
+	function configure($instance) {
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl_path = dirname(dirname(__FILE__)) . '/templates/';
+		$tpl->assign('path', $tpl_path);
+
+//		$timeout = ini_get('max_execution_time');
+//		$tpl->assign('max_messages', $this->getParam('max_messages', (($timeout) ? 20 : 50)));
+
+		//$tpl->display($tpl_path . 'cron/storage/config.tpl');
+	}
+
+	function saveConfigurationAction() {
+
+//		@$max_messages = DevblocksPlatform::importGPC($_POST['max_messages'],'integer');
+//		$this->setParam('max_messages', $max_messages);
+
+		DevblocksPlatform::setHttpResponse(new DevblocksHttpResponse(array('config','jobs')));
+	}	
 }
-
-?>

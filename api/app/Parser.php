@@ -120,8 +120,8 @@ class CerberusParser {
 		}
 		
 		$settings = DevblocksPlatform::getPluginSettingsService();
-		$is_attachments_enabled = $settings->get('cerberusweb.core',CerberusSettings::ATTACHMENTS_ENABLED,1);
-		$attachments_max_size = $settings->get('cerberusweb.core',CerberusSettings::ATTACHMENTS_MAX_SIZE,10);
+		$is_attachments_enabled = $settings->get('cerberusweb.core',CerberusSettings::ATTACHMENTS_ENABLED,CerberusSettingsDefaults::ATTACHMENTS_ENABLED);
+		$attachments_max_size = $settings->get('cerberusweb.core',CerberusSettings::ATTACHMENTS_MAX_SIZE,CerberusSettingsDefaults::ATTACHMENTS_MAX_SIZE);
 		
 		foreach($struct as $st) {
 //		    echo "PART $st...<br>\r\n";
@@ -591,8 +591,8 @@ class CerberusParser {
 	    
 		// Add the other TO/CC addresses to the ticket
 		// [TODO] This should be cleaned up and optimized
-		if($settings->get('cerberusweb.core',CerberusSettings::PARSER_AUTO_REQ,0)) {
-			@$autoreq_exclude_list = $settings->get('cerberusweb.core',CerberusSettings::PARSER_AUTO_REQ_EXCLUDE,'');
+		if($settings->get('cerberusweb.core',CerberusSettings::PARSER_AUTO_REQ,CerberusSettingsDefaults::PARSER_AUTO_REQ)) {
+			@$autoreq_exclude_list = $settings->get('cerberusweb.core',CerberusSettings::PARSER_AUTO_REQ_EXCLUDE,CerberusSettingsDefaults::PARSER_AUTO_REQ_EXCLUDE);
 			$destinations = self::getDestinations($headers);
 			
 			if(is_array($destinations) && !empty($destinations)) {
@@ -626,17 +626,14 @@ class CerberusParser {
 			}
 		}
 		
-		$attachment_path = APP_STORAGE_PATH . '/attachments/'; // [TODO] This should allow external attachments (S3)
-		
         $fields = array(
             DAO_Message::TICKET_ID => $id,
             DAO_Message::CREATED_DATE => $iDate,
-            DAO_Message::ADDRESS_ID => $fromAddressInst->id
+            DAO_Message::ADDRESS_ID => $fromAddressInst->id,
         );
 		$email_id = DAO_Message::create($fields);
 		
-		// Content
-		DAO_MessageContent::create($email_id, $message->body);
+		Storage_MessageContent::put($email_id, $message->body);
 		
 		// Headers
 		foreach($headers as $hk => $hv) {
@@ -655,7 +652,6 @@ class CerberusParser {
 			        DAO_Attachment::MESSAGE_ID => $email_id,
 			        DAO_Attachment::DISPLAY_NAME => $filename,
 			        DAO_Attachment::MIME_TYPE => $file->mime_type,
-			        DAO_Attachment::FILE_SIZE => intval($file->file_size),
 			    );
 			    $file_id = DAO_Attachment::create($fields);
 				
@@ -663,24 +659,11 @@ class CerberusParser {
 			        @unlink($file->tmpname); // remove our temp file
 				    continue;
 				}
-				
-			    // Make file attachments use buckets so we have a max per directory
-	            $attachment_bucket = sprintf("%03d/",
-	                mt_rand(1,100)
-	            );
-	            $attachment_file = $file_id;
-	            
-	            if(!file_exists($attachment_path.$attachment_bucket)) {
-	                @mkdir($attachment_path.$attachment_bucket, 0770, true);
-	                // [TODO] Needs error checking
-	            }
 
-	            rename($file->getTempFile(), $attachment_path.$attachment_bucket.$attachment_file);
-			    
-			    // [TODO] Split off attachments into its own DAO
-			    DAO_Attachment::update($file_id, array(
-			        DAO_Attachment::FILEPATH => $attachment_bucket.$attachment_file
-			    ));
+				$contents = file_get_contents($file->getTempFile());
+				@unlink($file->getTempFile());
+				
+				Storage_Attachments::put($file_id, $contents);
 			}
 		}
 		
