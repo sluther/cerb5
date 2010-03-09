@@ -937,9 +937,16 @@ class Model_MailToGroupRule {
 						break;
 						
 					case 'from':
-						$regexp_from = DevblocksPlatform::strToRegExp($value);
-						if(@preg_match($regexp_from, $fromAddress->email)) {
-							$passed++;
+						$sources = DevblocksPlatform::parseCsvString($value);
+						if(is_array($sources)) {
+							foreach($sources as $source)
+							{
+								$regexp_from = DevblocksPlatform::strToRegExp($source);
+								if(@preg_match($regexp_from, $fromAddress->email)) {
+									$passed++;
+									break;
+								}	
+							}
 						}
 						break;
 						
