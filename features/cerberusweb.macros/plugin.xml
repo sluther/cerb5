@@ -1,0 +1,115 @@
+<!DOCTYPE plugin SYSTEM "../../libs/devblocks/plugin.dtd">
+<plugin>
+	<id>cerberusweb.macros</id>
+	<name>[Cerb5] Macros (Experimental)</name>
+	<description>Create reusable actions based on search criteria</description>
+	<author>Scott Luther</author>
+	<revision>0</revision>
+	<link>http://www.cerberusweb.com/</link>
+	
+	<!-- Exported Classes -->
+	
+	<class_loader>
+		<file path="api/App.php">
+			<class name="DAO_MacroAction" />
+			<class name="Model_MacroAction" />
+		</file>
+	</class_loader>
+
+	<!-- Permissions -->
+	
+	
+	<extensions>
+	    <!-- Page Extensions -->
+	
+    	<!--<extension point="cerberusweb.page">
+    		<id>macro.page</id>
+    		<name>Macros Page</name>
+    		<class>
+    			<file>api/App.php</file>
+    			<name>ChMacrosPage</name>
+    		</class>
+    		<params>
+    			<param key="uri" value="automator" />
+    			<param key="menutitle" value="automator.menu.automator" />
+    		</params>
+    	</extension>-->
+        
+        <!-- Config Tab -->
+        <extension point="cerberusweb.config.tab">
+    		<id>macros.config.tab</id>
+    		<name>Macros Config Tab</name>
+    		<class>
+    			<file>api/App.php</file>
+    			<name>ChMacrosConfigTab</name>
+    		</class>
+    		<params>
+    			<param key="uri" value="macros" />
+    			<param key="title" value="Macros" />
+    		</params>
+    	</extension>
+        
+	    <!-- Group Tab -->
+        <extension point="cerberusweb.groups.tab">
+            <id>core.groups.macros</id>
+			<name>Macros Preferences</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChMacrosGroupTab</name>
+			</class>
+			<params>
+				<param key="uri" value="macros" />
+				<param key="title" value="Macros" />
+			</params>
+        </extension>
+        
+        <!-- Event Listeners -->
+		
+		<extension point="devblocks.listener.event">
+			<id>macros.listener.core</id>
+			<name>Macros Listener</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChMacrosEventListener</name>
+			</class>
+			<params>
+				<!-- Event Listener -->
+				<param key="events">
+					<value>
+						<data key="cron.heartbeat" />
+					</value>
+				</param>
+			</params>
+		</extension>
+        
+        <!-- Patch Containers -->
+		
+		<extension point="devblocks.patch.container">
+			<id>cerberusweb.macros.patches</id>
+			<name>Macros Patches</name>
+			<class>
+				<file>api/Patch.php</file>
+				<name>ChMacrosPatchContainer</name>
+			</class>
+			<params>
+			</params>
+		</extension>
+
+		<!-- Translations -->
+		
+		<extension point="devblocks.i18n.strings">
+			<id>cerberusweb.macros.translations</id>
+			<name>Macros Strings</name>
+			<class>
+				<file>api/Plugin.php</file>
+				<name>ChMacrosTranslations</name>
+			</class>
+			<params>
+			</params>
+		</extension>
+	</extensions>
+    
+    
+    
+    
+</plugin>
