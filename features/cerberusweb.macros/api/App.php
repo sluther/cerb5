@@ -11,30 +11,54 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 	function showTab() {
 		$tpl = DevblocksPlatform::getTemplateService();
 		$tpl_path = $this->_TPL_PATH;
+		$macros = DAO_MacroAction::getAll(true);
+		$tpl->assign('macros', $macros);
 		$tpl->display('file:' . $tpl_path . 'index.tpl');
 	}
 	
 	function saveTab() {
 		print 'here!';
 	}
-	function showMacroFilterPanelAction()
-	{
-		@$group_id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
-		
+	
+	function showMacrosActionPanelAction() {		
 		$tpl = DevblocksPlatform::getTemplateService();
 		$tpl_path = $this->_TPL_PATH;
 		$tpl->assign('path', $tpl_path);
-
-		$tpl->assign('group_id', $group_id);
+		
+   		@$id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
 		
 		$active_worker = CerberusApplication::getActiveWorker();
 		if(!$active_worker->isTeamManager($group_id) && !$active_worker->is_superuser) {
 			return;
+		} 
+		if(null != ($macro = DAO_MacroAction::get($id))) {
+			$source = $macro->source;
+			$tpl->assign('macro', $macro);
+		} else {
+			$source = 'cerberusweb.macroaction.source.tickets';
 		}
+		$ticketsource = new stdClass();
+		$ticketsource->name = 'Tickets';
+		$addresssource = new stdClass();
+		$addresssource->name = 'Addresses';
+		$oppssource = new stdClass();
+		$oppssource->name = 'Opportunities';
+		$taskssource = new stdClass();
+		$taskssource->name = 'Tasks';
+		$orgssource = new stdClass();
+		$orgssource->name = 'Organizations';
+		$sources = array(
+			'cerberusweb.macroaction.source.tickets'   => $ticketsource,
+			'cerberusweb.macroaction.source.addresses' => $addresssource,
+			'cerberusweb.macroaction.source.opps'      => $oppssource,
+			'cerberusweb.macroaction.source.tasks'     => $taskssource,
+			'cerberusweb.macroaction.source.orgs'      => $orgssource,
+			
+		);
+//		var_dump($sources);
+		$tpl->assign('sources', $sources);
 		
-		$team_rules = DAO_GroupInboxFilter::getByGroupId($group_id);
-		$tpl->assign('team_rules', $team_rules);
-		
+//		var_dump($macro);
 		$groups = DAO_Group::getAll();
 		$tpl->assign('groups', $groups);
 
@@ -45,14 +69,175 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 		$tpl->assign('workers', $workers);
 
 		// Custom Field Sources
-		$source_manifests = DevblocksPlatform::getExtensions('cerberusweb.fields.source', false);
+		$source_manifests = DevblocksPlatform::getExtensions('cerberusweb.macros.sources', true);
 		$tpl->assign('source_manifests', $source_manifests);
 		
 		// Custom Fields
 		$custom_fields =  DAO_CustomField::getAll();
 		$tpl->assign('custom_fields', $custom_fields);
 		
+		$ext_action_mfts = DevblocksPlatform::getExtensions('cerberusweb.macros.actions', true);
+		$tpl->assign('ext_action_mfts', $ext_action_mfts);
+
 		$tpl->display('file:' . $tpl_path . 'peek.tpl');
+	}
+	
+//	function showMacroActionConfigAction()
+//	{
+//		@$source = 
+//		
+//	}
+
+	function saveMacrosActionPanelAction() {
+		@$id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
+		@$name = DevblocksPlatform::importGPC($_REQUEST['name'],'string');
+		@$source = DevblocksPlatform::importGPC($_REQUEST['source'],'string');
+		@$do   = DevblocksPlatform::importGPC($_REQUEST['do'],'array',array());
+		
+		// [TODO] change this
+		$sources = array(
+			'tickets'		=>	'Model_Ticket',
+			'addresses'		=>	'Model_Address',
+			'opportunities'	=>	'Model_CrmOpportunity',
+			'task'			=>	'Model_Task',
+			'orgs'			=>	'Model_ContactOrg',
+		
+		);
+		
+			// Actions
+		if(is_array($do))
+		foreach($do as $act) {
+			$action = array();
+			
+			switch($act) {
+				// Move group/bucket
+				case 'move':
+					@$move_code = DevblocksPlatform::importGPC($_REQUEST['do_move'],'string',null);
+					if(0 != strlen($move_code)) {
+						list($g_id, $b_id) = CerberusApplication::translateTeamCategoryCode($move_code);
+						$action = array(
+							'group_id' => intval($g_id),
+							'bucket_id' => intval($b_id),
+						);
+					}
+					break;
+				// Assign to worker
+				case 'assign':
+					@$worker_id = DevblocksPlatform::importGPC($_REQUEST['do_assign'],'string',null);
+					if(0 != strlen($worker_id))
+						$action = array(
+							'worker_id' => intval($worker_id)
+						);
+					break;
+				// Spam training
+				case 'spam':
+					@$is_spam = DevblocksPlatform::importGPC($_REQUEST['do_spam'],'string',null);
+					if(0 != strlen($is_spam))
+						$action = array(
+							'is_spam' => (!$is_spam?0:1)
+						);
+					break;
+				// Set status
+				case 'status':
+					@$status = DevblocksPlatform::importGPC($_REQUEST['do_status'],'string',null);
+					if(0 != strlen($status)) {
+						$action = array(
+							'is_waiting' => (3==$status?1:0), // explicit waiting
+							'is_closed' => ((0==$status||3==$status)?0:1), // not open or waiting
+							'is_deleted' => (2==$status?1:0), // explicit deleted
+						);
+					}
+					break;
+				default: // ignore invalids
+					// Custom fields
+					if("cf_" == substr($act,0,3)) {
+						$field_id = intval(substr($act,3));
+						
+						if(!isset($custom_fields[$field_id]))
+							continue;
+
+						$action = array();
+							
+						// [TODO] Operators
+							
+						switch($custom_fields[$field_id]->type) {
+							case 'S': // string
+							case 'T': // clob
+							case 'D': // dropdown
+							case 'U': // URL
+							case 'W': // worker
+								$value = DevblocksPlatform::importGPC($_REQUEST['do_cf_'.$field_id],'string','');
+								$action['value'] = $value;
+								break;
+							case 'M': // multi-dropdown
+							case 'X': // multi-checkbox
+								$in_array = DevblocksPlatform::importGPC($_REQUEST['do_cf_'.$field_id],'array',array());
+								$out_array = array();
+								
+								// Hash key on the option for quick lookup later
+								if(is_array($in_array))
+								foreach($in_array as $k => $v) {
+									$out_array[$v] = $v;
+								}
+								
+								$action['value'] = $out_array;
+								break;
+							case 'E': // date
+								$value = DevblocksPlatform::importGPC($_REQUEST['do_cf_'.$field_id],'string','');
+								$action['value'] = $value;
+								break;
+							case 'N': // number
+							case 'C': // checkbox
+								$value = DevblocksPlatform::importGPC($_REQUEST['do_cf_'.$field_id],'string','');
+								$action['value'] = intval($value);
+								break;
+						}
+						
+					} else {
+						continue;
+					}
+					break;
+			}
+			
+			$actions[$act] = $action;
+		}
+		
+		$fields = array(
+			DAO_MacroAction::NAME => $name,
+			DAO_MacroAction::SOURCE => $source,
+			DAO_MacroAction::ACTIONS_SER => serialize($actions),
+		);
+		
+		// Create
+   		if(empty($id)) {
+	   		$id = DAO_MacroAction::create($fields);
+	   		
+	   	// Update
+   		} else {
+			DAO_MacroAction::update($id, $fields);
+   		}
+   		
+   		DevblocksPlatform::redirect(new DevblocksHttpResponse(array('config','macros')));
+	}
+	
+	function showSourceActionsAction() {
+		@$source = DevblocksPlatform::importGPC($_REQUEST['source'],'string');
+		switch($source) {
+			case 'cerberusweb.macroaction.source.tickets':
+				
+				echo 'Tickets!';
+				break;
+			case 'cerberusweb.macroaction.source.tasks':
+				echo 'Tasks!';
+				break;
+			default:
+				break;
+		}
+		$sourceActions = array(
+			'close' => array('tickets', 'tasks', 'opportunities'),
+			'open' => array('tickets', 'tasks', 'opportunities')
+		);
+		
 	}
 };
 
@@ -212,15 +397,17 @@ class DAO_MacroAction extends DevblocksORMHelper {
 	const POS = 'pos';
 	const CREATED = 'created';
 	const NAME = 'name';
+	const SOURCE = 'source';
 	const CRITERIA_SER = 'criteria_ser';
 	const ACTIONS_SER = 'actions_ser';
+	const CACHE_MACRO_ACTIONS = 'macro_actions';
 
 	static function create($fields) {
 		$db = DevblocksPlatform::getDatabaseService();
 		
 		$id = $db->GenID('generic_seq');
 		
-		$sql = sprintf("INSERT INTO mail_to_group_rule (id, created) ".
+		$sql = sprintf("INSERT INTO macro_action (id, created) ".
 			"VALUES (%d, %d)",
 			$id,
 			time()
@@ -234,6 +421,18 @@ class DAO_MacroAction extends DevblocksORMHelper {
 	
 	static function update($ids, $fields) {
 		parent::_update($ids, 'macro_action', $fields);
+		
+		self::clearCache();
+	}
+	
+	static function getAll($nocache=false) {
+	    $cache = DevblocksPlatform::getCacheService();
+	    
+	    if($nocache ||null === ($macroactions = $cache->load(DAO_MacroAction::CACHE_MACRO_ACTIONS))) {
+	    	$macroactions = self::getWhere();
+	    	$cache->save($macroactions, DAO_MacroAction::CACHE_MACRO_ACTIONS);
+	    }
+	    return $macroactions;
 	}
 	
 	/**
@@ -243,10 +442,10 @@ class DAO_MacroAction extends DevblocksORMHelper {
 	static function getWhere($where=null) {
 		$db = DevblocksPlatform::getDatabaseService();
 		
-		$sql = "SELECT id, pos, created, name, criteria_ser, actions_ser ".
+		$sql = "SELECT id, created, name, criteria_ser, actions_ser, source ".
 			"FROM macro_action ".
 			(!empty($where) ? sprintf("WHERE %s ",$where) : "").
-			"ORDER BY is_sticky DESC, sticky_order ASC, pos DESC";
+			"ORDER BY created DESC";
 		$rs = $db->Execute($sql);
 		
 		return self::_getObjectsFromResult($rs);
@@ -277,9 +476,9 @@ class DAO_MacroAction extends DevblocksORMHelper {
 		while($row = mysql_fetch_assoc($rs)) {
 			$object = new Model_MacroAction();
 			$object->id = $row['id'];
-			$object->pos = $row['pos'];
 			$object->created = $row['created'];
 			$object->name = $row['name'];
+			$object->source = $row['source'];
 			$criteria_ser = $row['criteria_ser'];
 			$actions_ser = $row['actions_ser'];
 
@@ -319,6 +518,11 @@ class DAO_MacroAction extends DevblocksORMHelper {
 		$db->Execute(sprintf("UPDATE macro_action SET pos = pos + 1 WHERE id = %d",
 			$id
 		));
+	}
+	
+	static function clearCache() {
+		$cache = DevblocksPlatform::getCacheService();
+		$cache->remove(self::CACHE_MACRO_ACTIONS);
 	}
 
 };
@@ -691,3 +895,20 @@ class Model_MacroAction {
 	
 };
 
+abstract class Extension_MacroActionSource extends DevblocksExtension {
+	const EXTENSION_POINT = 'cerberusweb.macroaction.source';
+	
+	function __construct($manifest) {
+		$this->DevblocksExtension($manifest);
+	}
+	
+	abstract function renderConfig(Model_MacroAction $macro);
+};
+
+abstract class ExtensionMacroActionAction extends DevblocksExtension {
+	function __construct($manifest) {
+		$this->DevblocksExtension($manifest);
+	}
+	
+	function run(){}	
+}
