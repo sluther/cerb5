@@ -31,34 +31,34 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 		if(!$active_worker->isTeamManager($group_id) && !$active_worker->is_superuser) {
 			return;
 		} 
-		if(null != ($macro = DAO_MacroAction::get($id))) {
-			$source = $macro->source;
-			$tpl->assign('macro', $macro);
-		} else {
-			$source = 'cerberusweb.macroaction.source.tickets';
-		}
-		$ticketsource = new stdClass();
-		$ticketsource->name = 'Tickets';
-		$addresssource = new stdClass();
-		$addresssource->name = 'Addresses';
-		$oppssource = new stdClass();
-		$oppssource->name = 'Opportunities';
-		$taskssource = new stdClass();
-		$taskssource->name = 'Tasks';
-		$orgssource = new stdClass();
-		$orgssource->name = 'Organizations';
-		$sources = array(
-			'cerberusweb.macroaction.source.tickets'   => $ticketsource,
-			'cerberusweb.macroaction.source.addresses' => $addresssource,
-			'cerberusweb.macroaction.source.opps'      => $oppssource,
-			'cerberusweb.macroaction.source.tasks'     => $taskssource,
-			'cerberusweb.macroaction.source.orgs'      => $orgssource,
-			
-		);
-//		var_dump($sources);
+
+		$sources = DevblocksPlatform::getExtensions('cerberusweb.macros.source', false);
 		$tpl->assign('sources', $sources);
+
+
+		$source_ext_id = 'cerberusweb.macros.source.tickets';
+
+		// we need to set the source_extension_id for the macro object so that renderConfig() knows
+		// which source to render the config for
+		// if editing an existing macro, this will already be set
+		// however, if we're making a new macro, it needs to be set explicitly
+		if(null != ($macro = DAO_MacroAction::get($id))) {
+			$source_ext_id = $macro->source_extension_id;
+		} else {
+			// there's probably a better way to handle this, but if we're creating a new macro
+			// we need to set the $macro var so renderConfig() won't bitch about
+			// not being passed a Model_MacroAction object
+			$macro = new Model_MacroAction();
+			$macro->source_extension_id = $source_ext_id;
+		}
 		
-//		var_dump($macro);
+		$tpl->assign('macro', $macro);
+		
+		if(false !== $source_ext = DevblocksPlatform::getExtension($source_ext_id, true))
+		{
+			$tpl->assign('source_ext', $source_ext);			
+		}
+		
 		$groups = DAO_Group::getAll();
 		$tpl->assign('groups', $groups);
 
@@ -68,13 +68,13 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 		$workers = DAO_Worker::getAll();
 		$tpl->assign('workers', $workers);
 
-		// Custom Field Sources
-		$source_manifests = DevblocksPlatform::getExtensions('cerberusweb.macros.sources', true);
-		$tpl->assign('source_manifests', $source_manifests);
-		
 		// Custom Fields
 		$custom_fields =  DAO_CustomField::getAll();
 		$tpl->assign('custom_fields', $custom_fields);
+		
+		// Custom Macro Sources
+		$source_manifests = DevblocksPlatform::getExtensions('cerberusweb.macros.sources', true);
+		$tpl->assign('source_manifests', $source_manifests);
 		
 		$ext_action_mfts = DevblocksPlatform::getExtensions('cerberusweb.macros.actions', true);
 		$tpl->assign('ext_action_mfts', $ext_action_mfts);
@@ -91,20 +91,10 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 	function saveMacrosActionPanelAction() {
 		@$id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
 		@$name = DevblocksPlatform::importGPC($_REQUEST['name'],'string');
-		@$source = DevblocksPlatform::importGPC($_REQUEST['source'],'string');
+		@$source_ext_id = DevblocksPlatform::importGPC($_REQUEST['source_ext_id'],'string');
 		@$do   = DevblocksPlatform::importGPC($_REQUEST['do'],'array',array());
 		
-		// [TODO] change this
-		$sources = array(
-			'tickets'		=>	'Model_Ticket',
-			'addresses'		=>	'Model_Address',
-			'opportunities'	=>	'Model_CrmOpportunity',
-			'task'			=>	'Model_Task',
-			'orgs'			=>	'Model_ContactOrg',
-		
-		);
-		
-			// Actions
+		// Actions
 		if(is_array($do))
 		foreach($do as $act) {
 			$action = array();
@@ -204,7 +194,7 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 		
 		$fields = array(
 			DAO_MacroAction::NAME => $name,
-			DAO_MacroAction::SOURCE => $source,
+			DAO_MacroAction::SOURCE_EXTENSION_ID => $source_ext_id,
 			DAO_MacroAction::ACTIONS_SER => serialize($actions),
 		);
 		
@@ -221,22 +211,25 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 	}
 	
 	function showSourceActionsAction() {
-		@$source = DevblocksPlatform::importGPC($_REQUEST['source'],'string');
-		switch($source) {
-			case 'cerberusweb.macroaction.source.tickets':
-				
-				echo 'Tickets!';
-				break;
-			case 'cerberusweb.macroaction.source.tasks':
-				echo 'Tasks!';
-				break;
-			default:
-				break;
+		@$ext_id = DevblocksPlatform::importGPC($_REQUEST['ext_id'],'string');
+		@$macro_id = DevblocksPlatform::importGPC($_REQUEST['macro_id'], 'integer');
+		
+		if(null == ($macro = DAO_MacroAction::get($macro_id))) {
+			
+			// there's probably a better way to handle this, but if we're creating a new macro
+			// we need to set the $macro var so renderConfig() won't bitch about
+			// not being passed a Model_MacroAction object
+			$macro = new Model_MacroAction();
+			
+			// as above, we need to explicitly set the source_extension_id, so renderConfig() knows
+			// what source to render the actions for
+			$macro->source_extension_id = $ext_id;
 		}
-		$sourceActions = array(
-			'close' => array('tickets', 'tasks', 'opportunities'),
-			'open' => array('tickets', 'tasks', 'opportunities')
-		);
+		
+		if(false !== $ext_id = DevblocksPlatform::getExtension($ext_id, true))
+		{
+			$ext_id->renderConfig($macro);			
+		}
 		
 	}
 };
@@ -397,7 +390,7 @@ class DAO_MacroAction extends DevblocksORMHelper {
 	const POS = 'pos';
 	const CREATED = 'created';
 	const NAME = 'name';
-	const SOURCE = 'source';
+	const SOURCE_EXTENSION_ID = 'source_extension_id';
 	const CRITERIA_SER = 'criteria_ser';
 	const ACTIONS_SER = 'actions_ser';
 	const CACHE_MACRO_ACTIONS = 'macro_actions';
@@ -437,12 +430,12 @@ class DAO_MacroAction extends DevblocksORMHelper {
 	
 	/**
 	 * @param string $where
-	 * @return Model_MailToGroupRule[]
+	 * @return Model_MacroAction[]
 	 */
 	static function getWhere($where=null) {
 		$db = DevblocksPlatform::getDatabaseService();
 		
-		$sql = "SELECT id, created, name, criteria_ser, actions_ser, source ".
+		$sql = "SELECT id, created, name, criteria_ser, actions_ser, source_extension_id ".
 			"FROM macro_action ".
 			(!empty($where) ? sprintf("WHERE %s ",$where) : "").
 			"ORDER BY created DESC";
@@ -453,7 +446,7 @@ class DAO_MacroAction extends DevblocksORMHelper {
 
 	/**
 	 * @param integer $id
-	 * @return Model_MailToGroupRule	 */
+	 * @return Model_MacroAction	 */
 	static function get($id) {
 		$objects = self::getWhere(sprintf("%s = %d",
 			self::ID,
@@ -468,7 +461,7 @@ class DAO_MacroAction extends DevblocksORMHelper {
 	
 	/**
 	 * @param resource $rs
-	 * @return Model_MailToGroupRule[]
+	 * @return Model_MacroAction[]
 	 */
 	static private function _getObjectsFromResult($rs) {
 		$objects = array();
@@ -478,7 +471,7 @@ class DAO_MacroAction extends DevblocksORMHelper {
 			$object->id = $row['id'];
 			$object->created = $row['created'];
 			$object->name = $row['name'];
-			$object->source = $row['source'];
+			$object->source_extension_id = $row['source_extension_id'];
 			$criteria_ser = $row['criteria_ser'];
 			$actions_ser = $row['actions_ser'];
 
@@ -508,17 +501,17 @@ class DAO_MacroAction extends DevblocksORMHelper {
 		return true;
 	}
 
-	/**
-	 * Increment the number of times we've matched this rule
-	 *
-	 * @param integer $id
-	 */
-	static function increment($id) {
-		$db = DevblocksPlatform::getDatabaseService();
-		$db->Execute(sprintf("UPDATE macro_action SET pos = pos + 1 WHERE id = %d",
-			$id
-		));
-	}
+//	/**
+//	 * Increment the number of times we've matched this rule
+//	 *
+//	 * @param integer $id
+//	 */
+//	static function increment($id) {
+//		$db = DevblocksPlatform::getDatabaseService();
+//		$db->Execute(sprintf("UPDATE macro_action SET pos = pos + 1 WHERE id = %d",
+//			$id
+//		));
+//	}
 	
 	static function clearCache() {
 		$cache = DevblocksPlatform::getCacheService();
@@ -534,6 +527,7 @@ class Model_MacroAction {
 	public $name = '';
 	public $criteria = array();
 	public $actions = array();
+	public $source_extension_id = '';
 	
 	static function getMatches($object) {
 //		print_r($fromAddress);
@@ -889,6 +883,7 @@ class Model_MacroAction {
 				DAO_Ticket::updateTicket($ticket_ids, $fields);
 			
 			// Custom Fields
+			
 			C4_AbstractView::_doBulkSetCustomFields(ChCustomFieldSource_Ticket::ID, $field_values, $ticket_ids);
 		}
 	}
@@ -899,16 +894,69 @@ abstract class Extension_MacroActionSource extends DevblocksExtension {
 	const EXTENSION_POINT = 'cerberusweb.macroaction.source';
 	
 	function __construct($manifest) {
-		$this->DevblocksExtension($manifest);
+		parent::__construct($manifest);
 	}
 	
-	abstract function renderConfig(Model_MacroAction $macro);
+	function renderConfig(Model_MacroAction $macro){
+		$actions_ext_mft = DevblocksPlatform::getExtensions('cerberusweb.macros.action', false);
+		$actions = array();
+		
+		foreach($actions_ext_mft as $mft)
+		{
+			if(isset($mft->params['sources'][0][$macro->source_extension_id])) {
+				$actions[$mft->id] = $mft;				
+			}
+		}
+		return $actions;
+	}
 };
 
-abstract class ExtensionMacroActionAction extends DevblocksExtension {
+abstract class Extension_MacroActionAction extends DevblocksExtension {
 	function __construct($manifest) {
-		$this->DevblocksExtension($manifest);
+		parent::__construct($manifest);
 	}
 	
 	function run(){}	
-}
+};
+
+class ChMacrosActionSource_Tickets extends Extension_MacroActionSource {
+	function __construct($manifest) {
+		parent::__construct($manifest);		
+	}
+	
+	public function renderConfig(Model_MacroAction $macro)
+	{
+		// we'll render the config here, _and_ populate the settings properly based on the macro
+		$actions = parent::renderConfig($macro);
+		var_dump($actions);
+		// [TODO] change this to load a .tpl file instead of just spitting out html
+		echo '<table width="100%">';
+		foreach($actions as $action) {
+			echo '<tr><td valign="top"><input type="checkbox" name="do[]" value="' . $action->id .'">' . $action->name . '</input></td></tr>';
+		}
+		echo '</table>';
+		
+	}
+};
+
+class ChMacrosActionSource_Addresses extends Extension_MacroActionSource {
+	function __construct($manifest) {
+		parent::__construct($manifest);		
+	}
+	
+	public function renderConfig(Model_MacroAction $macro)
+	{
+		// we'll render the config here, _and_ populate the settings properly based on the macro
+		$actions = parent::renderConfig($macro);
+//		var_dump($actions);
+		// [TODO] change this to load a .tpl file instead of just spitting out html
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('actions', $actions);
+		
+		
+		$tpl->display('file:' . dirname(dirname(__FILE__)) . 'actions.tpl');
+//		echo '<div>Test Address Actions</div>';
+		
+		
+	}
+};

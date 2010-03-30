@@ -14,28 +14,29 @@
 <input type="text" name="name" value="{$macro->name|escape}" size="45" style="width:95%;"><br>
 
 
-<h2>Macro object:</h2>
-
-
 <table width="100%">
 	<tr>
 		<td valign="top">
-			<select name="source" onchange="genericAjaxGet('divSourceActions','c=config&a=handleTabAction&tab=macros.config.tab&action=showSourceActions&source='+escape(selectValue(this)));">
+			<h2>Macro object:</h2>
+			<select name="source_ext_id" onchange="genericAjaxGet('divSourceActions','c=config&a=handleTabAction&tab=macros.config.tab&action=showSourceActions&ext_id='+escape(selectValue(this))+'&macro_id={$macro->id}');">
 				{foreach from=$sources item=source key=source_id}
-				<option value="{$source_id}"{if $macro->source == $source_id} selected="selected"{/if}>{$source->name}</option>
+				<option value="{$source_id}"{if $macro->source_extension_id == $source_id} selected="selected"{/if}>{$source->name}</option>
 				{/foreach}
 				<!-- plugin contributed sources -->
 				{* foreach from=$ext_sources item=ext_source key=ext_source_key*}
 				<!-- <option value="{$ext_source}"{if $macro->source == $ext_source_key} selected="selected"{/if}>{$ext_source->name}</option> -->
 				{* /foreach *}
 			</select>
+			<h2>Actions:</h2>
 			<blockquote id="divSourceActions" style="margin:5px;background-color:rgb(255,255,255);padding:5px;border:1px dotted rgb(120,120,120);display:{if 1}block{else}none{/if};">
 				<!-- Ticket actions -->
+
 				{* foo *}
-				
-				{if !empty($source) && is_a($source,'Extension_MacroActionSource')}
-					{$source->renderConfig($macro)}
-				{/if}
+				<table width="100%">
+					{if !empty($source_ext) && is_a($source_ext,'Extension_MacroActionSource')}
+						{$source_ext->renderConfig($macro)}
+					{/if}
+				</table>
 			</blockquote>
 		</td>
 	</tr>

@@ -20,6 +20,60 @@
 	
 	
 	<extensions>
+	    <!-- Source Extensions -->
+        <extension point="cerberusweb.macros.source">
+            <id>cerberusweb.macros.source.tickets</id>
+    		<name>Tickets</name>
+    		<class>
+    			<file>api/App.php</file>
+    			<name>ChMacrosActionSource_Tickets</name>
+    		</class>
+    	</extension>
+        <extension point="cerberusweb.macros.source">
+            <id>cerberusweb.macros.source.addresses</id>
+    		<name>Addresses</name>
+    		<class>
+    			<file>api/App.php</file>
+    			<name>ChMacrosActionSource_Addresses</name>
+    		</class>
+    	</extension>
+        
+        <!-- Action Extensions -->
+        <extension point="cerberusweb.macros.action">
+			<id>cerberusweb.macros.action.close</id>
+			<name>Close</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChMacrosActionAction_Close</name>
+			</class>
+			<params>
+				<!-- Available to Sources -->
+				<param key="sources">
+					<value>
+						<data key="cerberusweb.macros.source.tickets" />						
+						<data key="cerberusweb.macros.source.addresses" />	
+					</value>
+				</param>
+			</params>
+		</extension>
+        <extension point="cerberusweb.macros.action">
+			<id>cerberusweb.macros.action.open</id>
+			<name>Open</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChMacrosActionAction_Open</name>
+			</class>
+			<params>
+				<!-- Available to Sources -->
+				<param key="sources">
+					<value>
+						<data key="cerberusweb.macros.source.tickets" />						
+						<data key="cerberusweb.macros.source.addresses" />	
+					</value>
+				</param>
+			</params>
+		</extension>
+        
 	    <!-- Page Extensions -->
 	
     	<!--<extension point="cerberusweb.page">
