@@ -37,57 +37,76 @@
     			<name>ChMacrosActionSource_Addresses</name>
     		</class>
     	</extension>
+        <extension point="cerberusweb.macros.source">
+            <id>cerberusweb.macros.source.opportunities</id>
+    		<name>Opportunities</name>
+    		<class>
+    			<file>api/App.php</file>
+    			<name>ChMacrosActionSource_Opportunities</name>
+    		</class>
+    	</extension>
+        <extension point="cerberusweb.macros.source">
+            <id>cerberusweb.macros.source.tasks</id>
+    		<name>Tasks</name>
+    		<class>
+    			<file>api/App.php</file>
+    			<name>ChMacrosActionSource_Tasks</name>
+    		</class>
+    	</extension>
         
         <!-- Action Extensions -->
         <extension point="cerberusweb.macros.action">
-			<id>cerberusweb.macros.action.close</id>
-			<name>Close</name>
+			<id>cerberusweb.macros.action.status</id>
+			<name>Status</name>
 			<class>
 				<file>api/App.php</file>
-				<name>ChMacrosActionAction_Close</name>
+				<name>ChMacrosActionAction_Status</name>
 			</class>
 			<params>
 				<!-- Available to Sources -->
 				<param key="sources">
 					<value>
 						<data key="cerberusweb.macros.source.tickets" />						
-						<data key="cerberusweb.macros.source.addresses" />	
+						<data key="cerberusweb.macros.source.opportunities" />	
 					</value>
 				</param>
 			</params>
 		</extension>
         <extension point="cerberusweb.macros.action">
-			<id>cerberusweb.macros.action.open</id>
-			<name>Open</name>
+			<id>cerberusweb.macros.action.move</id>
+			<name>Move</name>
 			<class>
 				<file>api/App.php</file>
-				<name>ChMacrosActionAction_Open</name>
+				<name>ChMacrosActionAction_Move</name>
 			</class>
 			<params>
 				<!-- Available to Sources -->
 				<param key="sources">
 					<value>
-						<data key="cerberusweb.macros.source.tickets" />						
-						<data key="cerberusweb.macros.source.addresses" />	
+						<data key="cerberusweb.macros.source.tickets" />	
 					</value>
 				</param>
 			</params>
 		</extension>
-        
+        <extension point="cerberusweb.macros.action">
+			<id>cerberusweb.macros.action.assign</id>
+			<name>Assign</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChMacrosActionAction_Assign</name>
+			</class>
+			<params>
+				<!-- Available to Sources -->
+				<param key="sources">
+					<value>
+						<data key="cerberusweb.macros.source.tickets" />
+                        <data key="cerberusweb.macros.source.tasks" />
+                        <data key="cerberusweb.macros.source.opportunities" />	
+					</value>
+				</param>
+			</params>
+		</extension>
 	    <!-- Page Extensions -->
-	
-    	<!--<extension point="cerberusweb.page">
-    		<id>macro.page</id>
-    		<name>Macros Page</name>
-    		<class>
-    			<file>api/App.php</file>
-    			<name>ChMacrosPage</name>
-    		</class>
-    		<params>
-    			<param key="uri" value="automator" />
-    			<param key="menutitle" value="automator.menu.automator" />
-    		</params>
-    	</extension>-->
         
         <!-- Config Tab -->
         <extension point="cerberusweb.config.tab">

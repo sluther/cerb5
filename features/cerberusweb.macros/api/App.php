@@ -16,9 +16,7 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 		$tpl->display('file:' . $tpl_path . 'index.tpl');
 	}
 	
-	function saveTab() {
-		print 'here!';
-	}
+	function saveTab() {}
 	
 	function showMacrosActionPanelAction() {		
 		$tpl = DevblocksPlatform::getTemplateService();
@@ -93,16 +91,18 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 		@$name = DevblocksPlatform::importGPC($_REQUEST['name'],'string');
 		@$source_ext_id = DevblocksPlatform::importGPC($_REQUEST['source_ext_id'],'string');
 		@$do   = DevblocksPlatform::importGPC($_REQUEST['do'],'array',array());
+//		@$values = DevblocksPlatform::importGPC($_REQUEST['values'],'array',array());
 		
 		// Actions
 		if(is_array($do))
 		foreach($do as $act) {
 			$action = array();
-			
+			$shortact = array_pop(explode('.', $act));
+			$value = DevblocksPlatform::importGPC($_REQUEST['do_'.$shortact]);
 			switch($act) {
 				// Move group/bucket
-				case 'move':
-					@$move_code = DevblocksPlatform::importGPC($_REQUEST['do_move'],'string',null);
+				case 'cerberusweb.macros.action.move':
+					@$move_code = $value;
 					if(0 != strlen($move_code)) {
 						list($g_id, $b_id) = CerberusApplication::translateTeamCategoryCode($move_code);
 						$action = array(
@@ -112,8 +112,8 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 					}
 					break;
 				// Assign to worker
-				case 'assign':
-					@$worker_id = DevblocksPlatform::importGPC($_REQUEST['do_assign'],'string',null);
+				case 'cerberusweb.macros.action.assign':
+					@$worker_id = $value;
 					if(0 != strlen($worker_id))
 						$action = array(
 							'worker_id' => intval($worker_id)
@@ -219,16 +219,16 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 			// there's probably a better way to handle this, but if we're creating a new macro
 			// we need to set the $macro var so renderConfig() won't bitch about
 			// not being passed a Model_MacroAction object
-			$macro = new Model_MacroAction();
-			
-			// as above, we need to explicitly set the source_extension_id, so renderConfig() knows
-			// what source to render the actions for
-			$macro->source_extension_id = $ext_id;
+			$macro = new Model_MacroAction();			
 		}
-		
+		// as above, we need to explicitly set the source_extension_id, so renderConfig() knows
+		// what source to render the actions for
+		// we are setting it here because otherwise the config will render for
+		// source the macro is set to rather than the selected source
+		$macro->source_extension_id = $ext_id;
 		if(false !== $ext_id = DevblocksPlatform::getExtension($ext_id, true))
 		{
-			$ext_id->renderConfig($macro);			
+			$ext_id->renderConfig($macro);
 		}
 		
 	}
@@ -928,33 +928,71 @@ class ChMacrosActionSource_Tickets extends Extension_MacroActionSource {
 	{
 		// we'll render the config here, _and_ populate the settings properly based on the macro
 		$actions = parent::renderConfig($macro);
-		var_dump($actions);
-		// [TODO] change this to load a .tpl file instead of just spitting out html
-		echo '<table width="100%">';
-		foreach($actions as $action) {
-			echo '<tr><td valign="top"><input type="checkbox" name="do[]" value="' . $action->id .'">' . $action->name . '</input></td></tr>';
-		}
-		echo '</table>';
 		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('actions', $actions);
+		$tpl->assign('macro', $macro);
+		
+		$tpl->display('file:' . dirname(dirname(__FILE__)) . '/templates/actions.tpl');
 	}
 };
 
 class ChMacrosActionSource_Addresses extends Extension_MacroActionSource {
 	function __construct($manifest) {
-		parent::__construct($manifest);		
+		parent::__construct($manifest);
 	}
 	
 	public function renderConfig(Model_MacroAction $macro)
 	{
 		// we'll render the config here, _and_ populate the settings properly based on the macro
 		$actions = parent::renderConfig($macro);
-//		var_dump($actions);
-		// [TODO] change this to load a .tpl file instead of just spitting out html
+
 		$tpl = DevblocksPlatform::getTemplateService();
 		$tpl->assign('actions', $actions);
+		$tpl->assign('macro', $macro);
+//		var_dump($actions);
+		$tpl->display('file:' . dirname(dirname(__FILE__)) . '/templates/actions.tpl');
+//		echo '<div>Test Address Actions</div>';
 		
 		
-		$tpl->display('file:' . dirname(dirname(__FILE__)) . 'actions.tpl');
+	}
+};
+
+class ChMacrosActionSource_Opportunities extends Extension_MacroActionSource {
+	function __construct($manifest) {
+		parent::__construct($manifest);
+	}
+	
+	public function renderConfig(Model_MacroAction $macro)
+	{
+		// we'll render the config here, _and_ populate the settings properly based on the macro
+		$actions = parent::renderConfig($macro);
+
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('actions', $actions);
+		$tpl->assign('macro', $macro);
+		
+		$tpl->display('file:' . dirname(dirname(__FILE__)) . '/templates/actions.tpl');
+//		echo '<div>Test Address Actions</div>';
+		
+		
+	}
+};
+
+class ChMacrosActionSource_Tasks extends Extension_MacroActionSource {
+	function __construct($manifest) {
+		parent::__construct($manifest);
+	}
+	
+	public function renderConfig(Model_MacroAction $macro)
+	{
+		// we'll render the config here, _and_ populate the settings properly based on the macro
+		$actions = parent::renderConfig($macro);
+
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('actions', $actions);
+		$tpl->assign('macro', $macro);
+		$tpl->display('file:' . dirname(dirname(__FILE__)) . '/templates/actions.tpl');
 //		echo '<div>Test Address Actions</div>';
 		
 		
