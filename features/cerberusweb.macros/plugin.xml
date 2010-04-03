@@ -20,7 +20,52 @@
 	
 	
 	<extensions>
-	    <!-- Source Extensions -->
+	    
+
+
+	    <!-- Page Extensions -->
+        <extension point="cerberusweb.page">
+			<id>core.page.macros</id>
+			<name>Macros Page</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChMacrosPage</name>
+			</class>
+			<params>
+				<param key="uri" value="macros" />
+				<param key="menutitle" value="" />
+			</params>
+		</extension>
+        
+        <!-- Config Tab -->
+        <extension point="cerberusweb.config.tab">
+    		<id>macros.config.tab</id>
+    		<name>Macros Config Tab</name>
+    		<class>
+    			<file>api/App.php</file>
+    			<name>ChMacrosConfigTab</name>
+    		</class>
+    		<params>
+    			<param key="uri" value="macros" />
+    			<param key="title" value="Macros" />
+    		</params>
+    	</extension>
+        
+	    <!-- Group Tab -->
+        <extension point="cerberusweb.groups.tab">
+            <id>core.groups.macros</id>
+			<name>Macros Preferences</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChMacrosGroupTab</name>
+			</class>
+			<params>
+				<param key="uri" value="macros" />
+				<param key="title" value="Macros" />
+			</params>
+        </extension>
+        
+        <!-- Source Extensions -->
         <extension point="cerberusweb.macros.source">
             <id>cerberusweb.macros.source.tickets</id>
     		<name>Tickets</name>
@@ -106,36 +151,6 @@
 				</param>
 			</params>
 		</extension>
-	    <!-- Page Extensions -->
-        
-        <!-- Config Tab -->
-        <extension point="cerberusweb.config.tab">
-    		<id>macros.config.tab</id>
-    		<name>Macros Config Tab</name>
-    		<class>
-    			<file>api/App.php</file>
-    			<name>ChMacrosConfigTab</name>
-    		</class>
-    		<params>
-    			<param key="uri" value="macros" />
-    			<param key="title" value="Macros" />
-    		</params>
-    	</extension>
-        
-	    <!-- Group Tab -->
-        <extension point="cerberusweb.groups.tab">
-            <id>core.groups.macros</id>
-			<name>Macros Preferences</name>
-			<class>
-				<file>api/App.php</file>
-				<name>ChMacrosGroupTab</name>
-			</class>
-			<params>
-				<param key="uri" value="macros" />
-				<param key="title" value="Macros" />
-			</params>
-        </extension>
-        
         <!-- Event Listeners -->
 		
 		<extension point="devblocks.listener.event">

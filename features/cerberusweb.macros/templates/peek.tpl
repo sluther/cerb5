@@ -1,4 +1,4 @@
-<form action="{devblocks_url}{/devblocks_url}" method="post" id="frmAutomatorMacro">
+<form action="{devblocks_url}{/devblocks_url}" method="post" id="frmMacroAction">
 <input type="hidden" name="c" value="config">
 <input type="hidden" name="a" value="handleTabAction">
 <input type="hidden" name="tab" value="macros.config.tab">
@@ -7,8 +7,6 @@
 <input type="hidden" name="group_id" value="{$group_id}">
 <input type="hidden" name="id" value="{$macro->id}">
 {if !empty($view_id)}<input type="hidden" name="view_id" value="{$view_id}">{/if}
-
-<h2>Add Macro Action</h2>
 
 <b>Macro Name:</b> (e.g. Close Tickets)<br>
 <input type="text" name="name" value="{$macro->name|escape}" size="45" style="width:95%;"><br>
@@ -31,12 +29,11 @@
 			<blockquote id="divSourceActions" style="margin:5px;background-color:rgb(255,255,255);padding:5px;border:1px dotted rgb(120,120,120);display:{if 1}block{else}none{/if};">
 				<!-- Ticket actions -->
 
-				{* foo *}
-				<table width="100%">
-					{if !empty($source_ext) && is_a($source_ext,'Extension_MacroActionSource')}
-						{$source_ext->renderConfig($macro)}
-					{/if}
-				</table>
+
+				{if !empty($source_ext) && is_a($source_ext,'Extension_MacroActionSource')}
+					{$source_ext->renderConfig($macro, $source_ext->manifest->id)}
+				{/if}
+
 			</blockquote>
 		</td>
 	</tr>
@@ -53,3 +50,8 @@
 </form>
 <br>
 
+<script type="text/javascript" language="JavaScript1.2">
+	genericPanel.one('dialogopen', function(event,ui) {
+		genericPanel.dialog('option','title',"Add Macro Action");
+	} );
+</script>
