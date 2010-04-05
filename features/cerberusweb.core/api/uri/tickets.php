@@ -71,6 +71,22 @@ class ChTicketsPage extends CerberusPageExtension {
 				// Attachments				
 				$tpl->assign('upload_max_filesize', ini_get('upload_max_filesize'));
 
+				// Continue a draft?
+				// [TODO] We could also display "you have xxx unsent drafts, would you like to continue one?"
+				if(null != ($draft_id = @$response->path[2])) {
+					$drafts = DAO_MailQueue::getWhere(sprintf("%s = %d AND %s = %d AND %s = %s",
+						DAO_MailQueue::ID,
+						$draft_id,
+						DAO_MailQueue::WORKER_ID,
+						$active_worker->id,
+						DAO_MailQueue::TYPE,
+						C4_ORMHelper::qstr(Model_MailQueue::TYPE_COMPOSE)
+					));
+					
+					if(isset($drafts[$draft_id]))
+						$tpl->assign('draft', $drafts[$draft_id]);
+				}
+				
 				// Link to last created ticket
 				if($visit->exists('compose.last_ticket')) {
 					$ticket_mask = $visit->get('compose.last_ticket');
@@ -539,6 +555,284 @@ class ChTicketsPage extends CerberusPageExtension {
 		$tpl->display('file:' . $this->_TPL_PATH . 'tickets/search/index.tpl');
 	}
 	
+	function showDraftsTabAction() {
+		$active_worker = CerberusApplication::getActiveWorker();
+		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('path', $this->_TPL_PATH);
+
+		$view = C4_AbstractViewLoader::getView('mail_drafts');
+		
+		if(null == $view) {
+			$view = new View_MailQueue();
+			$view->id = 'mail_drafts';
+			$view->name = 'Drafts';
+		}
+		
+		$view->params = array(
+			SearchFields_MailQueue::WORKER_ID => new DevblocksSearchCriteria(SearchFields_MailQueue::WORKER_ID, DevblocksSearchCriteria::OPER_EQ, $active_worker->id),
+			SearchFields_MailQueue::IS_QUEUED => new DevblocksSearchCriteria(SearchFields_MailQueue::IS_QUEUED, DevblocksSearchCriteria::OPER_EQ, 0),
+		);
+		
+		C4_AbstractViewLoader::setView($view->id,$view);
+		$tpl->assign('view', $view);
+		
+		$tpl->display('file:' . $this->_TPL_PATH . 'mail/queue/index.tpl');
+	}
+	
+	function saveDraftComposeAction() {
+		$active_worker = CerberusApplication::getActiveWorker();
+		@$draft_id = DevblocksPlatform::importGPC($_REQUEST['draft_id'],'integer',0); 
+		@$group_id = DevblocksPlatform::importGPC($_REQUEST['team_id'],'integer',0); 
+		@$to = DevblocksPlatform::importGPC($_REQUEST['to'],'string',''); 
+		@$cc = DevblocksPlatform::importGPC($_REQUEST['cc'],'string',''); 
+		@$bcc = DevblocksPlatform::importGPC($_REQUEST['bcc'],'string',''); 
+		@$subject = DevblocksPlatform::importGPC($_REQUEST['subject'],'string',''); 
+		@$content = DevblocksPlatform::importGPC($_REQUEST['content'],'string',''); 
+		
+		//print_r($_POST);
+		
+		$params = array();
+		
+		if(!empty($to))
+			$params['to'] = $to;
+		if(!empty($cc))
+			$params['cc'] = $cc;
+		if(!empty($bcc))
+			$params['bcc'] = $bcc;
+		if(!empty($group_id))
+			$params['group_id'] = $group_id;
+		
+		$fields = array(
+			DAO_MailQueue::TYPE => 'mail.compose',
+			DAO_MailQueue::TICKET_ID => 0,
+			DAO_MailQueue::WORKER_ID => $active_worker->id,
+			DAO_MailQueue::UPDATED => time(),
+			DAO_MailQueue::HINT_TO => $to,
+			DAO_MailQueue::SUBJECT => $subject,
+			DAO_MailQueue::BODY => $content,
+			DAO_MailQueue::PARAMS_JSON => json_encode($params),
+			DAO_MailQueue::IS_QUEUED => 0,
+			DAO_MailQueue::PRIORITY => 0,
+		);
+		
+		// Make sure the current worker is the draft author
+		if(!empty($draft_id)) {
+			$draft = DAO_MailQueue::getWhere(sprintf("%s = %d AND %s = %d",
+				DAO_MailQueue::ID,
+				$draft_id,
+				DAO_MailQueue::WORKER_ID,
+				$active_worker->id
+			));
+			
+			if(!isset($draft[$draft_id]))
+				$draft_id = null;
+		}
+		
+		if(empty($draft_id)) {
+			$draft_id = DAO_MailQueue::create($fields);
+		} else {
+			DAO_MailQueue::update($draft_id, $fields);
+		}
+		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('timestamp', time());
+		$html = $tpl->fetch('file:' . $this->_TPL_PATH . 'mail/queue/saved.tpl');
+		
+		echo json_encode(array('draft_id'=>$draft_id, 'html'=>$html));
+	}
+	
+	function deleteDraftAction() {
+		@$draft_id = DevblocksPlatform::importGPC($_REQUEST['draft_id'],'integer');
+		
+		@$active_worker = CerberusApplication::getActiveWorker();
+		
+		if(!empty($draft_id)
+			&& ($active_worker->id == $draft->worker_id || $active_worker->is_superuser)) {
+			
+			DAO_MailQueue::delete($draft_id);
+		}
+	}
+	
+	function showDraftsBulkPanelAction() {
+		@$id_csv = DevblocksPlatform::importGPC($_REQUEST['ids']);
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id']);
+
+		$tpl = DevblocksPlatform::getTemplateService();
+		$path = $this->_TPL_PATH;
+		$tpl->assign('path', $path);
+		$tpl->assign('view_id', $view_id);
+
+	    if(!empty($id_csv)) {
+	        $ids = DevblocksPlatform::parseCsvString($id_csv);
+	        $tpl->assign('ids', implode(',', $ids));
+	    }
+		
+	    // Lists
+//	    $lists = DAO_FeedbackList::getWhere();
+//	    $tpl->assign('lists', $lists);
+	    
+		// Custom Fields
+//		$custom_fields = DAO_CustomField::getBySource(ChCustomFieldSource_FeedbackEntry::ID);
+//		$tpl->assign('custom_fields', $custom_fields);
+		
+		$tpl->display('file:' . $path . 'mail/queue/bulk.tpl');		
+	}
+	
+	function doDraftsBulkUpdateAction() {
+		// Checked rows
+	    @$ids_str = DevblocksPlatform::importGPC($_REQUEST['ids'],'string');
+		$ids = DevblocksPlatform::parseCsvString($ids_str);
+
+		// Filter: whole list or check
+	    @$filter = DevblocksPlatform::importGPC($_REQUEST['filter'],'string','');
+	    
+	    // View
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string');
+		$view = C4_AbstractViewLoader::getView($view_id);
+		
+		// Draft fields
+		@$status = trim(DevblocksPlatform::importGPC($_POST['status'],'string'));
+
+		$do = array();
+		
+		// Do: Status
+		if(0 != strlen($status))
+			$do['status'] = $status;
+			
+		// Do: Custom fields
+//		$do = DAO_CustomFieldValue::handleBulkPost($do);
+			
+		$view->doBulkUpdate($filter, $do, $ids);
+		
+		$view->render();
+		return;		
+	}
+	
+	function viewDraftsExploreAction() {
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string');
+		
+		$active_worker = CerberusApplication::getActiveWorker();
+		$url_writer = DevblocksPlatform::getUrlService();
+		
+		// Generate hash
+		$hash = md5($view_id.$active_worker->id.time()); 
+		
+		// Loop through view and get IDs
+		$view = C4_AbstractViewLoader::getView($view_id);
+
+		$view->renderPage = 0;
+		$view->renderLimit = 25;
+		$pos = 0;
+		
+		do {
+			$models = array();
+			list($results, $total) = $view->getData();
+
+			// Summary row
+			if(0==$view->renderPage) {
+				$model = new Model_ExplorerSet();
+				$model->hash = $hash;
+				$model->pos = $pos++;
+				$model->params = array(
+					'title' => $view->name,
+					'created' => time(),
+					'worker_id' => $active_worker->id,
+					'total' => $total,
+					'return_url' => $url_writer->write('c=tickets&tab=drafts', true),
+				);
+				$models[] = $model; 
+				
+				$view->renderTotal = false; // speed up subsequent pages
+			}
+			
+			if(is_array($results))
+			foreach($results as $draft_id => $row) {
+				if($row[SearchFields_MailQueue::TYPE]==Model_MailQueue::TYPE_COMPOSE) {
+					$url = $url_writer->write(sprintf("c=tickets&a=compose&id=%d", $draft_id), true);
+				} elseif($row[SearchFields_MailQueue::TYPE]==Model_MailQueue::TYPE_TICKET_REPLY) {
+					$url = $url_writer->write(sprintf("c=display&id=%d", $row[SearchFields_MailQueue::TICKET_ID]), true) . sprintf("#draft%d", $draft_id);
+				}
+
+				$model = new Model_ExplorerSet();
+				$model->hash = $hash;
+				$model->pos = $pos++;
+				$model->params = array(
+					'id' => $row[SearchFields_MailQueue::ID],
+					'url' => $url,
+				);
+				$models[] = $model; 
+			}
+			
+			DAO_ExplorerSet::createFromModels($models);
+			
+			$view->renderPage++;
+			
+		} while(!empty($results));
+		
+		DevblocksPlatform::redirect(new DevblocksHttpResponse(array('explore',$hash,'1')));
+	}
+	
+	function viewTicketsExploreAction() {
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string');
+		
+		$active_worker = CerberusApplication::getActiveWorker();
+		$url_writer = DevblocksPlatform::getUrlService();
+		
+		// Generate hash
+		$hash = md5($view_id.$active_worker->id.time()); 
+		
+		// Loop through view and get IDs
+		$view = C4_AbstractViewLoader::getView($view_id);
+
+		$view->renderPage = 0;
+		$view->renderLimit = 25;
+		$pos = 0;
+		
+		do {
+			$models = array();
+			list($results, $total) = $view->getData();
+
+			// Summary row
+			if(0==$view->renderPage) {
+				$model = new Model_ExplorerSet();
+				$model->hash = $hash;
+				$model->pos = $pos++;
+				$model->params = array(
+					'title' => $view->name,
+					'created' => time(),
+					'worker_id' => $active_worker->id,
+					'total' => $total,
+					'return_url' => $url_writer->write('c=tickets', true),
+				);
+				$models[] = $model; 
+				
+				$view->renderTotal = false; // speed up subsequent pages
+			}
+			
+			if(is_array($results))
+			foreach($results as $ticket_id => $row) {
+				$url = $url_writer->write(sprintf("c=display&mask=%s", $row[SearchFields_Ticket::TICKET_MASK]), true);
+
+				$model = new Model_ExplorerSet();
+				$model->hash = $hash;
+				$model->pos = $pos++;
+				$model->params = array(
+					'id' => $row[SearchFields_Ticket::TICKET_ID],
+					'url' => $url,
+				);
+				$models[] = $model; 
+			}
+			
+			DAO_ExplorerSet::createFromModels($models);
+			
+			$view->renderPage++;
+			
+		} while(!empty($results));
+		
+		DevblocksPlatform::redirect(new DevblocksHttpResponse(array('explore',$hash,'1')));
+	}	
+	
 	// Ajax
 	function refreshSidebarAction() {
 		$db = DevblocksPlatform::getDatabaseService();
@@ -939,6 +1233,8 @@ class ChTicketsPage extends CerberusPageExtension {
 		if(!$active_worker->hasPriv('core.mail.send'))
 			return;
 		
+		@$draft_id = DevblocksPlatform::importGPC($_POST['draft_id'],'integer');
+		 
 		@$team_id = DevblocksPlatform::importGPC($_POST['team_id'],'integer'); 
 		@$to = DevblocksPlatform::importGPC($_POST['to'],'string');
 		@$cc = DevblocksPlatform::importGPC($_POST['cc'],'string','');
@@ -975,11 +1271,16 @@ class ChTicketsPage extends CerberusPageExtension {
 		
 		$ticket_id = CerberusMail::compose($properties);
 		
-		$ticket = DAO_Ticket::getTicket($ticket_id);
-		
-		$visit = CerberusApplication::getVisit(); /* @var CerberusVisit $visit */
-		$visit->set('compose.last_ticket', $ticket->mask);
-		
+		if(!empty($ticket_id)) {
+			if(!empty($draft_id))
+				DAO_MailQueue::delete($draft_id);
+				
+			$ticket = DAO_Ticket::getTicket($ticket_id);
+			
+			$visit = CerberusApplication::getVisit(); /* @var CerberusVisit $visit */
+			$visit->set('compose.last_ticket', $ticket->mask);
+		}
+
 		DevblocksPlatform::redirect(new DevblocksHttpResponse(array('tickets','compose')));
 	}
 	
@@ -1773,12 +2074,18 @@ class ChTicketsPage extends CerberusPageExtension {
 		$custom_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Ticket::ID);
 		$tpl->assign('custom_fields', $custom_fields);
 		
+		// Broadcast
+		CerberusTemplates::getTicketSearchTokens(null, $token_labels, $token_values);
+		$tpl->assign('token_labels', $token_labels);
+		
 		$tpl->display('file:' . $this->_TPL_PATH . 'tickets/rpc/batch_panel.tpl');
 	}
 	
 	// Ajax
 	function doBatchUpdateAction() {
-	    @$ticket_id_str = DevblocksPlatform::importGPC($_REQUEST['ticket_ids'],'string');
+		$active_worker = CerberusApplication::getActiveWorker();
+		
+		@$ticket_id_str = DevblocksPlatform::importGPC($_REQUEST['ticket_ids'],'string');
 	    @$shortcut_name = DevblocksPlatform::importGPC($_REQUEST['shortcut_name'],'string','');
 
 	    @$filter = DevblocksPlatform::importGPC($_REQUEST['filter'],'string','');
@@ -1831,6 +2138,20 @@ class ChTicketsPage extends CerberusPageExtension {
 			);
 		}
 		
+		// Broadcast: Mass Reply
+		if($active_worker->hasPriv('core.ticket.view.actions.broadcast_reply')) {
+			@$do_broadcast = DevblocksPlatform::importGPC($_REQUEST['do_broadcast'],'string',null);
+			@$broadcast_message = DevblocksPlatform::importGPC($_REQUEST['broadcast_message'],'string',null);
+			@$broadcast_is_queued = DevblocksPlatform::importGPC($_REQUEST['broadcast_is_queued'],'integer',0);
+			if(0 != strlen($do_broadcast) && !empty($broadcast_message)) {
+				$do['broadcast'] = array(
+					'message' => $broadcast_message,
+					'is_queued' => $broadcast_is_queued,
+					'worker_id' => $active_worker->id,
+				);
+			}
+		}
+		
 	    $data = array();
 	    $ticket_ids = array();
 	    
@@ -1844,7 +2165,6 @@ class ChTicketsPage extends CerberusPageExtension {
 	    }
 		
 	    // Restrict to current worker groups
-		$active_worker = CerberusApplication::getActiveWorker();
 		$memberships = $active_worker->getMemberships();
 		$view->params['tmp'] = new DevblocksSearchCriteria(SearchFields_Ticket::TICKET_TEAM_ID, 'in', array_keys($memberships)); 
 	    
@@ -1860,6 +2180,56 @@ class ChTicketsPage extends CerberusPageExtension {
 		return;
 	}
 
+	function doBatchUpdateBroadcastTestAction() {
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string');
+		
+		$active_worker = CerberusApplication::getActiveWorker();
+		$tpl_builder = DevblocksPlatform::getTemplateBuilder();
+		$view = C4_AbstractViewLoader::getView($view_id);
+
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('path', $this->_TPL_PATH);
+		
+		if($active_worker->hasPriv('core.ticket.view.actions.broadcast_reply')) {
+			@$broadcast_message = DevblocksPlatform::importGPC($_REQUEST['broadcast_message'],'string',null);
+
+			// Get total
+			$view->renderPage = 0;
+			$view->renderLimit = 1;
+			$view->renderTotal = true;
+			list($null, $total) = $view->getData();
+			
+			// Get the first row from the view
+			$view->renderPage = mt_rand(0, $total-1);
+			$view->renderLimit = 1;
+			$view->renderTotal = false;
+			list($result, $null) = $view->getData();
+			
+			if(empty($result)) {
+				$success = false;
+				$output = "There aren't any rows in this view!";
+				
+			} else {
+				// Try to build the template
+				CerberusTemplates::getTicketSearchTokens(array_shift($result), $token_labels, $token_values);
+				if(false === ($out = $tpl_builder->build($broadcast_message, $token_values))) {
+					// If we failed, show the compile errors
+					$errors = $tpl_builder->getErrors();
+					$success= false;
+					$output = @array_shift($errors);
+				} else {
+					// If successful, return the parsed template
+					$success = true;
+					$output = $out;
+				}
+
+				$tpl->assign('success', $success);
+				$tpl->assign('output', htmlentities($output, null, LANG_CHARSET_CODE));
+				$tpl->display('file:'.$this->_TPL_PATH.'internal/renderers/test_results.tpl');
+			}
+		}
+	}
+	
 	// ajax
 	function showViewRssAction() {
 		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string','');
