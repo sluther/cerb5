@@ -35,16 +35,20 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 
 		$source_ext_id = 'cerberusweb.macros.source.tickets';
 
-		// we need to set the source_extension_id for the macro object so that renderConfig() knows
-		// which source to render the config for
-		// if editing an existing macro, this will already be set
-		// however, if we're making a new macro, it needs to be set explicitly
+		/*
+		 we need to set the source_extension_id for the macro object so that renderConfig() knows
+		 which source to render the config for
+		 if editing an existing macro, this will already be set
+		 however, if we're making a new macro, it needs to be set explicitly
+		 */
 		if(null != ($macro = DAO_MacroAction::get($id))) {
 			$source_ext_id = $macro->source_extension_id;
 		} else {
-			// there's probably a better way to handle this, but if we're creating a new macro
-			// we need to set the $macro var so renderConfig() won't bitch about
-			// not being passed a Model_MacroAction object
+			/*
+			 there's probably a better way to handle this, but if we're creating a new macro
+			 we need to set the $macro var so renderConfig() won't bitch about
+			 not being passed a Model_MacroAction object
+			 */
 			$macro = new Model_MacroAction();
 			$macro->source_extension_id = $source_ext_id;
 		}
@@ -208,17 +212,20 @@ class ChMacrosConfigTab extends Extension_ConfigTab {
 //		var_dump($ext_id);
 //		var_dump($macro_id);
 		if(null == ($macro = DAO_MacroAction::get($macro_id))) {
-			
-			// there's probably a better way to handle this, but if we're creating a new macro
-			// we need to set the $macro var so renderConfig() won't bitch about
-			// not being passed a Model_MacroAction object
+			/*
+			 there's probably a better way to handle this, but if we're creating a new macro
+			 we need to set the $macro var so renderConfig() won't bitch about
+			 not being passed a Model_MacroAction object
+			 */
 			$macro = new Model_MacroAction();			
 		}
 		
 		if(false !== $ext_id = DevblocksPlatform::getExtension($ext_id, true))
 		{
-			// we're passing in the $ext_id->manifest->id so renderConfig() knows what 
-			// source we're rendering for
+			/*
+			 we're passing in the $ext_id->manifest->id so renderConfig() knows what 
+			 source we're rendering for
+			 */
 			$ext_id->renderConfig($macro, $ext_id->manifest->id);
 		}
 		
@@ -239,9 +246,7 @@ class ChMacrosGroupTab extends Extension_GroupTab {
 		$tpl->display('file:' . $tpl_path . 'index.tpl');
 	}
 	
-	function saveTab() {
-		print 'here!';
-	}
+	function saveTab() {}
 	function showMacroFilterPanelAction()
 	{
 		@$group_id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
@@ -331,16 +336,20 @@ class ChMacrosPage extends CerberusPageExtension {
 						}
 					}
 					break;
+				case 'cerberusweb.macros.source.addresses':
+					
+				case 'cerberusweb.macros.source.opportunities':
+					
+				case 'cerberusweb.macros.source.tasks':
+					
+				case 'cerberusweb.macros.source.organizations':
+					
 				default:
+					
 					break;
 				}
 				
-		}
-		
-		
-//		var_dump($macro);
-//		var_dump($ids);
-		
+		}		
 	}
 	function showMacroActionPanelAction() {
 		$tpl = DevblocksPlatform::getTemplateService();
@@ -351,15 +360,12 @@ class ChMacrosPage extends CerberusPageExtension {
 	
 	function saveMacroActionPanelAction() {
 		@$name = DevblocksPlatform::importGPC($_REQUEST['name'],'string');
-		var_dump($name);
 		
 		$fields = array(
    			DAO_MacroAction::NAME => $name,
    			DAO_MacroAction::CRITERIA_SER => serialize($criterion),
    			DAO_MacroAction::ACTIONS_SER => serialize($actions),
-   		);
-		var_dump($fields);
-		
+   		);		
 	}
 	
 	// Ajax
@@ -398,10 +404,7 @@ class ChMacrosEventListener extends DevblocksEventListenerExtension {
 		parent::__construct($manifest);
 	}
 	
-	function handleEvent($event)
-	{
-		var_dump($event);
-	}
+	function handleEvent($event) {}
 	
 };
 
@@ -550,9 +553,6 @@ class Model_MacroAction {
 	public $source_extension_id = '';
 	
 	static function getMatches($object) {
-//		print_r($fromAddress);
-//		print_r($message);
-		
 		$matches = array();
 		$rules = DAO_MailToGroupRule::getWhere();
 		$message_headers = $message->headers;
@@ -973,6 +973,7 @@ class ChMacrosActionSource_Tickets extends Extension_MacroActionSource {
 		}
 		
 		$tpl->assign('source', $source);
+//		var_dump($source);
 		$tpl->assign('macro', $macro);
 		
 		$tpl->display('file:' . dirname(dirname(__FILE__)) . '/templates/actions.tpl');
@@ -993,8 +994,10 @@ class ChMacrosActionSource_Addresses extends Extension_MacroActionSource {
 		$tpl = DevblocksPlatform::getTemplateService();
 		$tpl->assign('actions', $actions);
 		
-		// since the sources dont match we don't want the actions to be set
-		// to the values stored in the db
+		/*
+		 since the sources dont match we don't want the actions to be set
+		 to the values stored in the db
+		 */
 		if($macro->source_extension_id !== $source)
 		{
 			$macro->actions = array();
@@ -1031,11 +1034,12 @@ class ChMacrosActionSource_Opportunities extends Extension_MacroActionSource {
 		
 		$tpl->assign('actions', $actions);
 		
-		// since the sources dont match we don't want the actions to be set
-		// to the values stored in the db
+		/*
+		 since the sources dont match we don't want the actions to be set
+		 to the values stored in the db
+		 */
 		if($macro->source_extension_id !== $source)
 		{
-			print 'Cleared $macro->actions since sources didn\'t match!';
 			$macro->actions = array();
 		}
 		
@@ -1069,9 +1073,10 @@ class ChMacrosActionSource_Tasks extends Extension_MacroActionSource {
 		$tpl->assign('workers', $workers);
 		
 		$tpl->assign('actions', $actions);
-		
-		// since the sources dont match we don't want the actions to be set
-		// to the values stored in the db
+		/*
+		 since the sources dont match we don't want the actions to be set
+		 to the values stored in the db
+		 */
 		if($macro->source_extension_id !== $source)
 		{
 			$macro->actions = array();
@@ -1083,6 +1088,3 @@ class ChMacrosActionSource_Tasks extends Extension_MacroActionSource {
 		$tpl->display('file:' . dirname(dirname(__FILE__)) . '/templates/actions.tpl');
 	}
 };
-
-
-

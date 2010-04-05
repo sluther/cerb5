@@ -11,11 +11,11 @@
 			<select name="do_status" onchange="document.getElementById('{$action_id}').checked=((''==selectValue(this))?false:true);">
 				<option value="">&nbsp;</option>
 				<option value="0" {if isset($act_status) && !$act_status.is_closed && !$act_status.is_deleted}selected="selected"{/if}>{$translate->_('status.open')|capitalize}</option>
-				<option value="3" {if isset($act_status) && !$act_status.is_closed && !$act_status.is_deleted && $act_status.is_waiting}selected="selected"{/if}>Waiting</option>
-				{if $active_worker->hasPriv('core.ticket.actions.close') || (isset($act_status) && $act_status.is_closed && !$act_status.is_deleted)}
-					<option value="1" {if isset($act_status) && $act_status.is_closed && !$act_status.is_deleted}selected="selected"{/if}>{$translate->_('status.closed')|capitalize}</option>
-				{/if}
-				{if $active_worker->hasPriv('core.ticket.actions.delete') || (isset($act_status) && $act_status.is_deleted)}
+				<option value="1" {if isset($act_status) && $act_status.is_closed && !$act_status.is_deleted}selected="selected"{/if}>{$translate->_('status.closed')|capitalize}</option>
+				
+				{* ticket fields *}
+				{if $source == 'cerberusweb.macros.source.tickets'}
+					<option value="3" {if isset($act_status) && !$act_status.is_closed && !$act_status.is_deleted && $act_status.is_waiting}selected="selected"{/if}>Waiting</option>
 					<option value="2" {if isset($act_status) && $act_status.is_deleted}selected="selected"{/if}>Deleted</option>
 				{/if}
 			</select>

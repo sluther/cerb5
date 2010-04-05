@@ -20,9 +20,6 @@
 	
 	
 	<extensions>
-	    
-
-
 	    <!-- Page Extensions -->
         <extension point="cerberusweb.page">
 			<id>core.page.macros</id>
