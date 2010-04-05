@@ -91,6 +91,11 @@
 			<class name="View_ContactOrg" />
 		</file>
 		
+		<file path="api/dao/explorer.php">
+			<class name="DAO_ExplorerSet" />
+			<class name="Model_ExplorerSet" />
+		</file>
+		
 		<file path="api/dao/group.php">
 			<class name="DAO_Group" />
 			<class name="DAO_GroupSettings" />
@@ -101,6 +106,13 @@
 			<class name="DAO_GroupInboxFilter" />
 			<class name="Model_GroupInboxFilter" />
 			<class name="SearchFields_GroupInboxFilter" />
+		</file>
+		
+		<file path="api/dao/mail_queue.php">
+			<class name="DAO_MailQueue" />
+			<class name="Model_MailQueue" />
+			<class name="SearchFields_MailQueue" />
+			<class name="View_MailQueue" />
 		</file>
 		
 		<file path="api/dao/message.php">
@@ -263,6 +275,7 @@
 		<priv id="core.ticket.actions.delete" label="acl.core.ticket.actions.delete" />
 		<priv id="core.ticket.actions.move" label="acl.core.ticket.actions.move" />
 		<priv id="core.ticket.actions.spam" label="acl.core.ticket.actions.spam" />
+		<priv id="core.ticket.view.actions.broadcast_reply" label="acl.core.ticket.view.actions.broadcast_reply" />
 		<priv id="core.ticket.view.actions.bulk_update" label="acl.core.ticket.view.actions.bulk_update" />
 		<priv id="core.ticket.view.actions.export" label="acl.core.ticket.view.actions.export" />
 		<priv id="core.ticket.view.actions.merge" label="acl.core.ticket.view.actions.merge" />
@@ -351,6 +364,18 @@
 			</class>
 			<params>
 				<param key="uri" value="files" />
+			</params>
+		</extension>
+		
+		<extension point="devblocks.controller">
+			<id>core.controller.explorer</id>
+			<name>Explorer Controller</name>
+			<class>
+				<file>api/uri/explorer.php</file>
+				<name>ChExplorerController</name>
+			</class>
+			<params>
+				<param key="uri" value="explore" />
 			</params>
 		</extension>
 
@@ -747,6 +772,17 @@
 			</params>
 		</extension>
 		
+		<extension point="cerberusweb.cron">
+			<id>cron.mail_queue</id>
+			<name>Mail Queue</name>
+			<class>
+				<file>api/cron.classes.php</file>
+				<name>MailQueueCron</name>
+			</class>
+			<params>
+			</params>
+		</extension>
+		
 		<!-- Custom Field Sources -->
 		
 		<extension point="cerberusweb.fields.source">
@@ -956,6 +992,19 @@
 			<class>
 				<file>api/plugin.classes.php</file>
 				<name>ChTaskSource_Ticket</name>
+			</class>
+			<params>
+			</params>
+		</extension>
+		
+		<!-- Explorer Toolbars -->
+		
+		<extension point="cerberusweb.explorer.toolbar">
+			<id>cerberusweb.explorer.toolbar.worker_events</id>
+			<name>Worker Events</name>
+			<class>
+				<file>api/uri/home.php</file>
+				<name>ChExplorerToolbarWorkerEvents</name>
 			</class>
 			<params>
 			</params>

@@ -440,7 +440,8 @@ class C4_TimeTrackingEntryView extends C4_AbstractView {
 			$this->renderLimit,
 			$this->renderPage,
 			$this->renderSortBy,
-			$this->renderSortAsc
+			$this->renderSortAsc,
+			$this->renderTotal
 		);
 		return $objects;
 	}
@@ -1006,19 +1007,6 @@ class ChTimeTrackingAjaxController extends DevblocksControllerExtension {
 		
 		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string','');
 		$tpl->assign('view_id', $view_id);
-		
-		/*
-		 * [IMPORTANT -- Yes, this is simply a line in the sand.]
-		 * You're welcome to modify the code to meet your needs, but please respect 
-		 * our licensing.  Buy a legitimate copy to help support the project!
-		 * http://www.cerberusweb.com/
-		 */
-		$license = CerberusLicense::getInstance();
-		if(empty($id) && (empty($license['serial']) || (!empty($license['serial']) && isset($license['a'])))
-			&& 10 <= DAO_TimeTrackingEntry::getItemCount()) {
-			$tpl->display('file:' . $tpl_path . 'timetracking/rpc/trial.tpl');
-			return;
-		}
 		
 		/*
 		 * This treats procedurally created model objects
