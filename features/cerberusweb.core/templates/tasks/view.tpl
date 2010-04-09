@@ -122,6 +122,13 @@
 	<tr>
 		<td colspan="2" valign="top">
 			{if $active_worker->hasPriv('core.tasks.actions.update_all')}<button type="button" onclick="genericAjaxPanel('c=tasks&a=showTaskBulkPanel&view_id={$view->id}&ids=' + Devblocks.getFormEnabledCheckboxValues('viewForm{$view->id}','row_id[]'),null,false,'500');"><span class="cerb-sprite sprite-folder_gear"></span> {'common.bulk_update'|devblocks_translate|lower}</button>{/if}
+			<input type="hidden" name="macro_id" value="">
+			<select name="macro_select" onchange="genericAjaxPanel('c=macros&a=runMacro&macro_id=' + this.form.macro_select[this.selectedIndex].value + '&view_id={$view->id}&ids=' + Devblocks.getFormEnabledCheckboxValues('viewForm{$view->id}','row_id[]'),null,false,'500');">
+				<option value="">-- run macro --</option>
+				{foreach from=$macros item=macro key=macro_id}
+				<option value="{$macro_id}">{$macro->name}</option>
+				{/foreach}
+			</select>
 		</td>
 	</tr>
 	{/if}

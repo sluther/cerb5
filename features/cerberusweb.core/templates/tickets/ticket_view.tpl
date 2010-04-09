@@ -219,7 +219,7 @@
 			</select>
 			{/if}
 			<input type="hidden" name="macro_id" value="">
-			<select name="macro_select" onchange="genericAjaxPanel('c=macros&a=runMacro&macro_id=' + this.form.macro_select[this.selectedIndex].value + '&view_id={$view->id}&ids=' + Devblocks.getFormEnabledCheckboxValues('viewForm{$view->id}','ticket_id[]'),null,false,'500');">
+			<select name="macro_select" onchange="this.form.macro_id.value=this.form.macro_select[this.selectedIndex].value; ajax.runMacro('{$view->id}', 'cerberusweb.macros.ticket');">
 				<option value="">-- run macro --</option>
 				{foreach from=$macros item=macro key=macro_id}
 				<option value="{$macro_id}">{$macro->name}</option>

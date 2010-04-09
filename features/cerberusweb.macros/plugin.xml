@@ -11,8 +11,8 @@
 	
 	<class_loader>
 		<file path="api/App.php">
-			<class name="DAO_MacroAction" />
-			<class name="Model_MacroAction" />
+			<class name="DAO_Macro" />
+			<class name="Model_Macro" />
 		</file>
 	</class_loader>
 
@@ -64,35 +64,35 @@
         
         <!-- Source Extensions -->
         <extension point="cerberusweb.macros.source">
-            <id>cerberusweb.macros.source.tickets</id>
+            <id>cerberusweb.macros.ticket</id>
     		<name>Tickets</name>
     		<class>
     			<file>api/App.php</file>
-    			<name>ChMacrosActionSource_Tickets</name>
+    			<name>ChMacroSource_Ticket</name>
     		</class>
     	</extension>
         <extension point="cerberusweb.macros.source">
-            <id>cerberusweb.macros.source.addresses</id>
+            <id>cerberusweb.macros.address</id>
     		<name>Addresses</name>
     		<class>
     			<file>api/App.php</file>
-    			<name>ChMacrosActionSource_Addresses</name>
+    			<name>ChMacroSource_Address</name>
     		</class>
     	</extension>
         <extension point="cerberusweb.macros.source">
-            <id>cerberusweb.macros.source.opportunities</id>
+            <id>cerberusweb.macros.opportunity</id>
     		<name>Opportunities</name>
     		<class>
     			<file>api/App.php</file>
-    			<name>ChMacrosActionSource_Opportunities</name>
+    			<name>ChMacroSource_Opportunity</name>
     		</class>
     	</extension>
         <extension point="cerberusweb.macros.source">
-            <id>cerberusweb.macros.source.tasks</id>
+            <id>cerberusweb.macros.task</id>
     		<name>Tasks</name>
     		<class>
     			<file>api/App.php</file>
-    			<name>ChMacrosActionSource_Tasks</name>
+    			<name>ChMacroSource_Task</name>
     		</class>
     	</extension>
         
@@ -108,8 +108,8 @@
 				<!-- Available to Sources -->
 				<param key="sources">
 					<value>
-						<data key="cerberusweb.macros.source.tickets" />						
-						<data key="cerberusweb.macros.source.opportunities" />	
+						<data key="cerberusweb.macros.ticket" />						
+						<data key="cerberusweb.macros.opportunity" />	
 					</value>
 				</param>
 			</params>
@@ -125,7 +125,7 @@
 				<!-- Available to Sources -->
 				<param key="sources">
 					<value>
-						<data key="cerberusweb.macros.source.tickets" />	
+						<data key="cerberusweb.macros.ticket" />	
 					</value>
 				</param>
 			</params>
@@ -141,9 +141,9 @@
 				<!-- Available to Sources -->
 				<param key="sources">
 					<value>
-						<data key="cerberusweb.macros.source.tickets" />
-                        <data key="cerberusweb.macros.source.tasks" />
-                        <data key="cerberusweb.macros.source.opportunities" />	
+						<data key="cerberusweb.macros.ticket" />
+                        <data key="cerberusweb.macros.task" />
+                        <data key="cerberusweb.macros.opportunity" />	
 					</value>
 				</param>
 			</params>

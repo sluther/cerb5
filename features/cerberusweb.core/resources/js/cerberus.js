@@ -330,7 +330,42 @@ var cAjaxCalls = function() {
 				break;
 		}
 	}
-	
+	this.runMacro = function(view_id, source) {
+        showLoadingPanel();
+		var divName = 'view'+view_id;
+		var formName = 'viewForm'+view_id;
+        var viewForm = document.getElementById(formName);
+		if(null == viewForm) return;
+        
+        if(typeof source != 'undefined' && source == 'cerberusweb.macros.ticket') {
+            var elements = viewForm.elements['ticket_id[]'];
+        } else {
+            var elements = viewForm.elements['row_id[]'];
+        }
+        
+        if(null == elements) return;
+
+		var len = elements.length;
+		var ids = new Array();
+
+		if(null == len && null != elements.value) {
+			ids[0] = elements.value;
+		} else {
+			for(var x=len-1;x>=0;x--) {
+				if(elements[x].checked) {
+					//frm.appendChild(elements[x]);
+					ids[ids.length] = elements[x].value;
+				}
+			}
+		}
+        ids = ids.join(',');
+//        genericAjaxPost('viewForm{$view->id}', 'view{$'c=macros&a=runMacro&macro_id=''&view_id='+view_id+'&ids=' + Devblocks.getFormEnabledCheckboxValues('viewForm{$view->id}','ticket_id[]'),null,false,'500');
+        genericAjaxPost(formName, divName, 'c=macros&a=runMacro&macro_id='+viewForm.macro_id.value+'&view_id='+view_id+'&ids='+ids, function(html) {
+			$('#'+divName).html(html);
+			genericAjaxGet('viewSidebar'+view_id,'c=tickets&a=refreshSidebar');
+            hideLoadingPanel();
+		});
+	}
 	this.postAndReloadView = function(frm,view_id) {
 		
 		$('#'+view_id).fadeTo("slow", 0.2);

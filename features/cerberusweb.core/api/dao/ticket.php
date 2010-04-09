@@ -1097,7 +1097,8 @@ class View_Ticket extends C4_AbstractView {
 		$custom_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Ticket::ID);
 		$tpl->assign('custom_fields', $custom_fields);
 		
-		$macros = DAO_MacroAction::getWhere("source_extension_id = 'cerberusweb.macros.source.tickets'");
+		// Macros
+		$macros = DAO_Macro::getWhere("source_extension_id = 'cerberusweb.macros.ticket'");
 		$tpl->assign('macros', $macros);
 		
 		// Undo?

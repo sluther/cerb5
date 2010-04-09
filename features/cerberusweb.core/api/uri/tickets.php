@@ -185,9 +185,6 @@ class ChTicketsPage extends CerberusPageExtension {
 		$workers = DAO_Worker::getAll();
 		$tpl->assign('workers', $workers);
 		
-		$macros = DAO_MacroAction::getWhere("source_extension_id = 'cerberusweb.macros.source.tickets'");
-		$tpl->assign('macros', $macros);
-		
 		$memberships = $active_worker->getMemberships();
 
 		// Totals

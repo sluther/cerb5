@@ -1432,6 +1432,10 @@ class View_CrmOpportunity extends C4_AbstractView {
 		// Custom fields
 		$custom_fields = DAO_CustomField::getBySource(CrmCustomFieldSource_Opportunity::ID);
 		$tpl->assign('custom_fields', $custom_fields);
+
+		// Macros
+		$macros = DAO_Macro::getWhere("source_extension_id = 'cerberusweb.macros.opportunity'");
+		$tpl->assign('macros', $macros);
 		
 		$tpl->assign('view_fields', $this->getColumns());
 		$tpl->display('file:' . APP_PATH . '/features/cerberusweb.crm/templates/crm/opps/view.tpl');

@@ -1,8 +1,8 @@
-<form action="{devblocks_url}{/devblocks_url}" method="post" id="frmMacroAction">
+<form action="{devblocks_url}{/devblocks_url}" method="post" id="frmMacro">
 <input type="hidden" name="c" value="config">
 <input type="hidden" name="a" value="handleTabAction">
 <input type="hidden" name="tab" value="macros.config.tab">
-<input type="hidden" name="action" value="saveMacrosActionPanel">
+<input type="hidden" name="action" value="saveMacroPanel">
 
 <input type="hidden" name="group_id" value="{$group_id}">
 <input type="hidden" name="id" value="{$macro->id}">
@@ -30,7 +30,7 @@
 				<!-- Ticket actions -->
 
 
-				{if !empty($source_ext) && is_a($source_ext,'Extension_MacroActionSource')}
+				{if !empty($source_ext) && is_a($source_ext,'Extension_MacroSource')}
 					{$source_ext->renderConfig($macro, $source_ext->manifest->id)}
 				{/if}
 
@@ -43,7 +43,7 @@
 
 
 {if !empty($view_id)}
-	<button type="button" onclick="ajax.postAndReloadView('frmAutomatorMacro','view{$view_id}');"><span class="cerb-sprite sprite-check"></span> {$translate->_('common.save_changes')|capitalize}</button>
+	<button type="button" onclick="ajax.postAndReloadView('frmMacro','view{$view_id}');"><span class="cerb-sprite sprite-check"></span> {$translate->_('common.save_changes')|capitalize}</button>
 {else}
 	<button type="submit"><span class="cerb-sprite sprite-check"></span> {$translate->_('common.save_changes')}</button>
 {/if}
@@ -52,6 +52,6 @@
 
 <script type="text/javascript" language="JavaScript1.2">
 	genericPanel.one('dialogopen', function(event,ui) {
-		genericPanel.dialog('option','title',"Add Macro Action");
+		genericPanel.dialog('option','title',"Add Macro");
 	} );
 </script>

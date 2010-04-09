@@ -427,6 +427,10 @@ class View_Task extends C4_AbstractView {
 		$custom_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Task::ID);
 		$tpl->assign('custom_fields', $custom_fields);
 		
+		// Macros
+		$macros = DAO_Macro::getWhere("source_extension_id = 'cerberusweb.macros.task'");
+		$tpl->assign('macros', $macros);
+		
 		$tpl->assign('view_fields', $this->getColumns());
 		$tpl->display('file:' . APP_PATH . '/features/cerberusweb.core/templates/tasks/view.tpl');
 	}

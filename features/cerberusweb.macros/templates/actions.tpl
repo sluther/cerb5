@@ -14,7 +14,7 @@
 				<option value="1" {if isset($act_status) && $act_status.is_closed && !$act_status.is_deleted}selected="selected"{/if}>{$translate->_('status.closed')|capitalize}</option>
 				
 				{* ticket fields *}
-				{if $source == 'cerberusweb.macros.source.tickets'}
+				{if $source == 'cerberusweb.macros.ticket'}
 					<option value="3" {if isset($act_status) && !$act_status.is_closed && !$act_status.is_deleted && $act_status.is_waiting}selected="selected"{/if}>Waiting</option>
 					<option value="2" {if isset($act_status) && $act_status.is_deleted}selected="selected"{/if}>Deleted</option>
 				{/if}
