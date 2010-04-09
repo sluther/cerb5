@@ -48,14 +48,16 @@
 		<td>
 			<!-- Assign field -->
 			<select name="do_assign" onchange="document.getElementById('{$action_id}').checked=((''==selectValue(this))?false:true);">
-				<option value="">&nbsp;</option>
+				<option value=""></option>
+				<option vale="0">Anybody</option>
 				{foreach from=$workers item=worker key=worker_id name=workers}
-					{if $worker_id==$active_worker->id}{math assign=next_worker_id_sel equation="x" x=$smarty.foreach.workers.iteration}{/if}
+					{if $worker_id==$active_worker->id}{math assign=next_worker_id_sel equation="x+1" x=$smarty.foreach.workers.iteration}{/if}
 					<option value="{$worker_id}" {if $act_assign.worker_id==$worker_id}selected="selected"{/if}>{$worker->getName()}</option>
 				{/foreach}
 			</select> 
 	      	{if !empty($next_worker_id_sel)}
 	      		<button type="button" onclick="this.form.do_assign.selectedIndex = {$next_worker_id_sel}; document.getElementById('{$action_id}').checked=(true)">me</button>
+	      		<button type="button" onclick="this.form.do_assign.selectedIndex = 1; document.getElementById('{$action_id}').checked=(true)">anybody</button>
 	      	{/if}
 		</td>
 		{/if}

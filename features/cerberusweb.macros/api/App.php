@@ -351,7 +351,7 @@ class ChMacrosPage extends CerberusPageExtension {
 		$view = C4_AbstractViewLoader::getView($view_id);
 		
 		$ids = explode(',', $ids);
-		var_dump($ids);
+		
 		if(null !== $macro = DAO_Macro::get($macro_id)) {
 			
 			switch($macro->source_extension_id)
@@ -424,7 +424,6 @@ class ChMacrosPage extends CerberusPageExtension {
 		}
 		$view = C4_AbstractViewLoader::getView($view_id);
 	    $view->render();
-	    var_dump($view->render());
 	}
 	function showMacroPanelAction() {
 		$tpl = DevblocksPlatform::getTemplateService();
