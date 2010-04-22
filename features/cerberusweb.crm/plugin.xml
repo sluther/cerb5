@@ -181,5 +181,20 @@
 			</params>
 		</extension>
 		
+        <!-- iPhone Pages -->
+        
+        <extension point="cerberusweb.iphone.activity.page">
+			<id>opportunities.iphone.activity.page</id>
+			<name>Opportunities iPhone Activity Page</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChOpportunitiesiPhoneActivityPage</name>
+			</class>
+			<params>
+				<param key="uri" value="opportunities" />
+				<param key="title" value="Opportunities" />
+			</params>
+		</extension>
+        
 	</extensions>
 </plugin>

@@ -1012,7 +1012,22 @@
 			</class>
 			<params>
 			</params>
-		</extension>		
-		
+		</extension>
+        
+        <!-- iPhone Pages -->
+        
+        <extension point="cerberusweb.iphone.activity.page">
+			<id>tasks.iphone.activity.page</id>
+			<name>Tasks Activity Tab</name>
+			<class>
+				<file>api/uri/tasks.php</file>
+				<name>ChTasksiPhoneActivityPage</name>
+			</class>
+			<params>
+				<param key="uri" value="tasks" />
+				<param key="title" value="Tasks" />
+			</params>
+		</extension>
+
 	</extensions>
 </plugin>

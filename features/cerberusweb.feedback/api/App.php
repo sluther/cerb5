@@ -850,5 +850,23 @@ if (class_exists('Extension_MessageToolbarItem',true)):
 	};
 endif;
 
+if(class_exists('Extension_iPhoneActivityPage', true)):
+	class ChFeedbackiPhoneActivityPage extends Extension_iPhoneActivityPage {
+		private $_TPL_PATH = '';
+		
+		public function __construct($manifest) {
+			$this->DevblocksExtension($manifest);
+			$this->_TPL_PATH = dirname(dirname(__FILE__)) . '/templates/';
+		}
+		
+		function render() {
+			$tpl = DevblocksPlatform::getTemplateService();
+			$feedback = DAO_FeedbackEntry::getWhere();
+//			var_dump($feedback);
+			$tpl->assign('feedbackentries', $feedback);
+			$tpl->display('file:' . $this->_TPL_PATH . 'activity/feedback.tpl');
+		}
+	};
+endif;
 
 ?>
