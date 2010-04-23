@@ -43,24 +43,6 @@ class ChTasksActivityTab extends Extension_ActivityTab {
 }
 endif;
 
-if(class_exists('Extension_iPhoneActivityPage', true)):
-	class ChTasksiPhoneActivityPage extends Extension_iPhoneActivityPage {
-		private $_TPL_PATH = '';
-		
-		public function __construct($manifest) {
-			$this->DevblocksExtension($manifest);
-			$this->_TPL_PATH = dirname(dirname(__FILE__)) . '/templates/';
-		}
-		
-		function render() {
-			$tpl = DevblocksPlatform::getTemplateService();
-			
-			$tpl->display('file:' . $this->_TPL_PATH . 'activity/tasks.tpl');
-		}
-	};
-endif;
-
-
 class ChTasksPage extends CerberusPageExtension {
 	private $_TPL_PATH = '';
 	

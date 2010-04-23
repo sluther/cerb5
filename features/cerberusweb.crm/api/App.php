@@ -111,20 +111,78 @@ class CrmOppsActivityTab extends Extension_ActivityTab {
 }
 endif;
 
-
 if(class_exists('Extension_iPhoneActivityPage', true)):
 	class ChOpportunitiesiPhoneActivityPage extends Extension_iPhoneActivityPage {
 		private $_TPL_PATH = '';
 		
 		public function __construct($manifest) {
 			$this->DevblocksExtension($manifest);
-			$this->_TPL_PATH = dirname(dirname(__FILE__)) . '/templates/';
+			$this->_TPL_PATH = dirname(dirname(__FILE__)) . '/templates/iphone/';
 		}
 		
 		function render() {
 			$tpl = DevblocksPlatform::getTemplateService();
+			$response = DevblocksPlatform::getHttpResponse();
+			// are we displaying the main home page?
+				
+			$path = $response->path;
+			array_shift($path); // iphone
+			array_shift($path); // activity
+			array_shift($path); // opportunities
+			$action = array_shift($path); // current action
 			
-			$tpl->display('file:' . $this->_TPL_PATH . 'activity/opportunities.tpl');
+			$id = array_shift($path); // opp id
+			
+			switch($action) {
+				case 'overview':
+					$tpl->display('file:' . $this->_TPL_PATH . 'tickets/overview.tpl');
+					break;
+				case 'display':
+					$tab_manifests = DevblocksPlatform::getExtensions('cerberusweb.iphone.opportunity.display.tab', false);
+					
+					$tpl->assign('tab_manifests', $tab_manifests);
+					$tpl->assign('opp_id', $id);
+					$selected_tab = array_shift($path);
+					$selected_tab = null != $selected_tab ? $selected_tab : 'notes'; // tab
+					
+					foreach($tab_manifests as $tab_mft)
+					{
+						if($selected_tab==$tab_mft->params['uri']) {
+							$tab = DevblocksPlatform::getExtension($tab_mft->id, true);
+						}
+					}
+					
+					$tpl->assign('tab', $tab);
+					$tpl->assign('selected_tab', $selected_tab);
+					$tpl->display('file:' . $this->_TPL_PATH . 'display.tpl');
+					break;
+				case 'properties':
+					$tpl->display('file:' . $this->_TPL_PATH . 'tickets/properties.tpl');
+					break;
+				case null:
+					$opportunities = DAO_CrmOpportunity::getWhere();
+					$tpl->assign('opportunities', $opportunities);
+					$tpl->display('file:' . $this->_TPL_PATH . 'home.tpl');
+					break;				
+				default:
+					break;
+			}
+		}
+	};
+endif;
+
+if(class_exists('Extension_iPhoneOpportunityDisplayTab', true)):
+	class ChNotesiPhoneOpportunityDisplayTab extends Extension_iPhoneOpportunityDisplayTab {
+		private $_TPL_PATH = '';
+		
+		public function __construct($manifest) {
+			$this->DevblocksExtension($manifest);
+			$this->_TPL_PATH = dirname(dirname(__FILE__)) . '/templates/iphone/';
+		}
+		
+		function showTab() {
+			$tpl = DevblocksPlatform::getTemplateService();
+			$tpl->display('file:' . $this->_TPL_PATH . 'display/notes.tpl');
 		}
 	};
 endif;

@@ -389,9 +389,6 @@ class ChiPhoneActivityPage extends CerberusPageExtension {
 		$action = array_shift($path);
 		
 		switch($action) {
-			case 'opportunities':
-				$tpl->display('file:' . $this->_TPL_PATH . 'actiity/opportunities.tpl');
-				break;
 			case null:
 				$actions = DevblocksPlatform::getExtensions('cerberusweb.iphone.activity.page');
 				$tpl->assign('actions', $actions);
@@ -438,9 +435,6 @@ class ChiPhoneResearchPage extends CerberusPageExtension {
 		switch($action) {
 			case 'tasks':
 				$tpl->display('file:' . $this->_TPL_PATH . 'activity/tasks.tpl');
-				break;
-			case 'opportunities':
-				$tpl->display('file:' . $this->_TPL_PATH . 'actiity/opportunities.tpl');
 				break;
 			case null:
 				$actions = DevblocksPlatform::getExtensions('cerberusweb.iphone.activity.tab');
@@ -489,9 +483,6 @@ class ChiPhoneConfigPage extends CerberusPageExtension {
 			case 'tasks':
 				$tpl->display('file:' . $this->_TPL_PATH . 'activity/tasks.tpl');
 				break;
-			case 'opportunities':
-				$tpl->display('file:' . $this->_TPL_PATH . 'actiity/opportunities.tpl');
-				break;
 			case null:
 				$actions = DevblocksPlatform::getExtensions('cerberusweb.iphone.activity.tab');
 				$tpl->assign('actions', $actions);
@@ -528,6 +519,15 @@ abstract class Extension_iPhoneTicketDisplayTab extends DevblocksExtension {
 };
 
 abstract class Extension_iPhoneActivityPage extends DevblocksExtension {
+	function __construct($manifest) {
+		parent::__construct($manifest);
+	}
+	
+	function showTab() {}
+	function saveTab() {}
+};
+
+abstract class Extension_iPhoneOpportunityDisplayTab extends DevblocksExtension {
 	function __construct($manifest) {
 		parent::__construct($manifest);
 	}
@@ -712,7 +712,7 @@ class ChOtheriPhoneTicketDisplayTab extends Extension_iPhoneTicketDisplayTab {
 	}
 };
 
-class ChTimeTrackingiPhoneActivityPage extends Extension_iPhoneActivityPage {
+class ChTasksiPhoneActivityPage extends Extension_iPhoneActivityPage {
 	private $_TPL_PATH = '';
 	
 	public function __construct($manifest) {
@@ -723,7 +723,7 @@ class ChTimeTrackingiPhoneActivityPage extends Extension_iPhoneActivityPage {
 	function render() {
 		$tpl = DevblocksPlatform::getTemplateService();
 		
-		$tpl->display('file:' . $this->_TPL_PATH . 'activity/timetracking.tpl');
+		$tpl->display('file:' . $this->_TPL_PATH . 'activity/tasks.tpl');
 	}
 };
 

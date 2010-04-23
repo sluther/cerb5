@@ -73,8 +73,20 @@
 				<param key="uri" value="activity" />
 			</params>
 		</extension>
+        <extension point="cerberusweb.iphone.page">
+			<id>iphone.research</id>
+			<name>iPhone Research Page</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChiPhoneResearchPage</name>
+			</class>
+			<params>
+				<param key="uri" value="research" />
+			</params>
+		</extension>
         
-        <!-- display tabs -->
+        <!-- Ticket Display Tabs -->
+        
         <extension point="cerberusweb.iphone.ticket.display.tab">
 			<id>conversation.iphone.tickets.display</id>
 			<name>Conversation Tab</name>
@@ -111,6 +123,22 @@
 				<param key="title" value="Other" />
 			</params>
 		</extension>
+        
+        <!-- Activity Pages -->
+
+        <extension point="cerberusweb.iphone.activity.page">
+			<id>tasks.iphone.activity.page</id>
+			<name>Tasks</name>
+			<class>
+				<file>api/App.php</file>
+				<name>ChTasksiPhoneActivityPage</name>
+			</class>
+			<params>
+				<param key="uri" value="tasks" />
+				<param key="title" value="Tasks" />
+			</params>
+		</extension>
+                 
         <extension point="cerberusweb.iphone.activity.page">
 			<id>iphone.activity.timetracking</id>
 			<name>Time Tracking Activity Tab</name>
