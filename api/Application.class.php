@@ -49,7 +49,7 @@
  *   WEBGROUP MEDIA LLC. - Developers of Cerberus Helpdesk
  */
 define("APP_VERSION", '5.0.0-rc1');
-define("APP_BUILD", 2010042203);
+define("APP_BUILD", 2010042301);
 define("APP_MAIL_PATH", APP_STORAGE_PATH . '/mail/');
 
 require_once(APP_PATH . "/api/DAO.class.php");
@@ -632,14 +632,18 @@ interface IContextToken {
 
 class CerberusContexts {
 	const CONTEXT_ADDRESS = 'cerberusweb.contexts.address';
+	const CONTEXT_ATTACHMENT = 'cerberusweb.contexts.attachment';
 	const CONTEXT_BUCKET = 'cerberusweb.contexts.bucket';
+	const CONTEXT_FEEDBACK = 'cerberusweb.contexts.feedback';
 	const CONTEXT_GROUP = 'cerberusweb.contexts.group';
+	const CONTEXT_KB_ARTICLE = 'cerberusweb.contexts.kb_article';
 	const CONTEXT_MESSAGE = 'cerberusweb.contexts.message';
 	const CONTEXT_NOTIFICATION= 'cerberusweb.contexts.notification';
 	const CONTEXT_OPPORTUNITY = 'cerberusweb.contexts.opportunity';
 	const CONTEXT_ORG = 'cerberusweb.contexts.org';
 	const CONTEXT_TASK = 'cerberusweb.contexts.task';
 	const CONTEXT_TICKET = 'cerberusweb.contexts.ticket';
+	const CONTEXT_TIMETRACKING = 'cerberusweb.contexts.timetracking';
 	const CONTEXT_WORKER = 'cerberusweb.contexts.worker';
 	
 	public static function getContext($context, $context_object, &$labels, &$values, $prefix=null, $nested=false) {
@@ -647,11 +651,20 @@ class CerberusContexts {
 			case 'cerberusweb.contexts.address':
 				self::_getAddressContext($context_object, $labels, $values, $prefix);
 				break;
+			case 'cerberusweb.contexts.attachment':
+				self::_getAttachmentContext($context_object, $labels, $values, $prefix);
+				break;
 			case 'cerberusweb.contexts.bucket':
 				self::_getBucketContext($context_object, $labels, $values, $prefix);
 				break;
+			case 'cerberusweb.contexts.feedback':
+				self::_getFeedbackContext($context_object, $labels, $values, $prefix);
+				break;
 			case 'cerberusweb.contexts.group':
 				self::_getGroupContext($context_object, $labels, $values, $prefix);
+				break;
+			case 'cerberusweb.contexts.kb_article':
+				self::_getKbArticleContext($context_object, $labels, $values, $prefix);
 				break;
 			case 'cerberusweb.contexts.message':
 				self::_getMessageContext($context_object, $labels, $values, $prefix);
@@ -670,6 +683,9 @@ class CerberusContexts {
 				break;
 			case 'cerberusweb.contexts.ticket':
 				self::_getTicketContext($context_object, $labels, $values, $prefix);
+				break;
+			case 'cerberusweb.contexts.timetracking':
+				self::_getTimeTrackingContext($context_object, $labels, $values, $prefix);
 				break;
 			case 'cerberusweb.contexts.worker':
 				self::_getWorkerContext($context_object, $labels, $values, $prefix);
@@ -805,6 +821,7 @@ class CerberusContexts {
 		
 		// Address token values
 		if(null != $address) {
+			$token_values['id'] = $address->id;
 			if(!empty($address->email))
 				$token_values['address'] = $address->email;
 			if(!empty($address->first_name))
@@ -853,6 +870,60 @@ class CerberusContexts {
 			$token_labels,
 			$token_values
 		);		
+		
+		return true;
+	}
+	
+	private static function _getAttachmentContext($attachment, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'Attachment:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		
+		// Polymorph
+		if(is_numeric($attachment)) {
+			list($results, $total) = DAO_Attachment::search(
+				array(
+					SearchFields_Attachment::ID => new DevblocksSearchCriteria(SearchFields_Attachment::ID,'=',$attachment),
+				),
+				1,
+				0,
+				null,
+				null,
+				false
+			);
+			
+			if(isset($results[$attachment]))
+				$attachment = $results[$attachment];
+			else
+				$attachment = null;
+		} elseif(is_array($attachment)) {
+			// It's what we want already.
+		} else {
+			$attachment = null;
+		}
+			
+		// Token labels
+		$token_labels = array(
+			'created|date' => $prefix.$translate->_('common.created'),
+			'id' => $prefix.$translate->_('common.id'),
+			'mime_type' => $prefix.$translate->_('attachment.mime_type'),
+			'name' => $prefix.$translate->_('attachment.display_name'),
+			'size' => $prefix.$translate->_('attachment.storage_size'),
+		);
+		
+		// Token values
+		$token_values = array();
+		
+		if(null != $attachment) {
+			$token_values['created'] = $attachment[SearchFields_Attachment::MESSAGE_CREATED_DATE];
+			$token_values['id'] = $attachment[SearchFields_Attachment::ID];
+			$token_values['message_id'] = $attachment[SearchFields_Attachment::MESSAGE_ID];
+			$token_values['mime_type'] = $attachment[SearchFields_Attachment::MIME_TYPE];
+			$token_values['name'] = $attachment[SearchFields_Attachment::DISPLAY_NAME];
+			$token_values['size'] = $attachment[SearchFields_Attachment::STORAGE_SIZE];
+			$token_values['ticket_id'] = $attachment[SearchFields_Attachment::TICKET_ID];
+		}
 		
 		return true;
 	}
@@ -944,6 +1015,125 @@ class CerberusContexts {
 		
 		return true;
 	}
+	
+	/**
+	 * 
+	 * @param $timeentry
+	 * @param $token_labels
+	 * @param $token_values
+	 * @param $prefix
+	 */
+	private static function _getTimeTrackingContext($timeentry, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'TimeEntry:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		$fields = DAO_CustomField::getBySource(ChCustomFieldSource_TimeEntry::ID);
+		
+		// Polymorph
+		if(is_numeric($timeentry) || $timeentry instanceof Model_TimeTrackingEntry) {
+			@$id = is_object($timeentry) ? $timeentry->id : intval($timeentry);
+			
+			list($results, $null) = DAO_TimeTrackingEntry::search(
+				array(),
+				array(
+					SearchFields_TimeTrackingEntry::ID => new DevblocksSearchCriteria(SearchFields_TimeTrackingEntry::ID,'=',$id),
+				),
+				1,
+				0,
+				null,
+				null,
+				false
+			);
+			
+			if(isset($results[$id]))
+				$timeentry = $results[$id];
+			else
+				$timeentry = null;
+			
+		} elseif(is_array($timeentry)) {
+			// It's what we want already.
+		} else {
+			$timeentry = null;
+		}
+			
+		// Token labels
+		$token_labels = array(
+			'created|date' => $prefix.$translate->_('timetracking_entry.log_date'),
+			'id' => $prefix.$translate->_('common.id'),
+			'mins' => $prefix.$translate->_('timetracking_entry.time_actual_mins'),
+			'notes' => $prefix.$translate->_('timetracking_entry.notes'),
+		);
+		
+		if(is_array($fields))
+		foreach($fields as $cf_id => $field) {
+			$token_labels['custom_'.$cf_id] = $prefix.$field->name;
+		}
+
+		// Token values
+		$token_values = array();
+		
+		if(null != $timeentry) {
+			$token_values['created'] = $timeentry[SearchFields_TimeTrackingEntry::LOG_DATE];
+			$token_values['id'] = $timeentry[SearchFields_TimeTrackingEntry::ID];
+			$token_values['mins'] = $timeentry[SearchFields_TimeTrackingEntry::TIME_ACTUAL_MINS];
+			$token_values['notes'] = $timeentry[SearchFields_TimeTrackingEntry::NOTES];
+			$token_values['custom'] = array();
+			
+			$field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_TimeEntry::ID, $timeentry[SearchFields_TimeTrackingEntry::ID]));
+			if(is_array($field_values) && !empty($field_values)) {
+				foreach($field_values as $cf_id => $cf_val) {
+					if(!isset($fields[$cf_id]))
+						continue;
+					
+					// The literal value
+					if(null != $address)
+						$token_values['custom'][$cf_id] = $cf_val;
+					
+					// Stringify
+					if(is_array($cf_val))
+						$cf_val = implode(', ', $cf_val);
+						
+					if(is_string($cf_val)) {
+						if(null != $address)
+							$token_values['custom_'.$cf_id] = $cf_val;
+					}
+				}
+			}
+		}
+		
+		// Email Org
+		@$org_id = $timeentry[SearchFields_TimeTrackingEntry::DEBIT_ORG_ID];
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_ORG, $org_id, $merge_token_labels, $merge_token_values, null, true);
+
+		self::_merge(
+			'org_',
+			'Org:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);		
+		
+		// Worker
+		@$worker_id = $timeentry[SearchFields_TimeTrackingEntry::WORKER_ID];
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_WORKER, $worker_id, $merge_token_labels, $merge_token_values, null, true);
+
+		self::_merge(
+			'worker_',
+			'Worker:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);		
+		
+		return true;
+	}	
 	
 	/**
 	 * 
@@ -1139,6 +1329,97 @@ class CerberusContexts {
 	
 	/**
 	 * 
+	 * @param $article
+	 * @param $token_labels
+	 * @param $token_values
+	 * @param $prefix
+	 */
+	private static function _getKbArticleContext($article, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'Article:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		//$fields = DAO_CustomField::getBySource(ChCustomFieldSource_Address::ID);
+		
+		// Polymorph
+		if(is_numeric($article)) {
+			$article = DAO_KbArticle::get($article);
+		} elseif($article instanceof Model_KbArticle) {
+			// It's what we want already.
+		} else {
+			$article = null;
+		}
+		/* @var $article Model_KbArticle */
+			
+		// Token labels
+		$token_labels = array(
+			'content' => $prefix.$translate->_('kb_article.content'),
+			'is_html' => $prefix.$translate->_('kb_article.format'),
+			'id' => $prefix.$translate->_('common.id'),
+			'title' => $prefix.$translate->_('kb_article.title'),
+			'updated|date' => $prefix.$translate->_('kb_article.updated'),
+			'views' => $prefix.$translate->_('kb_article.views'),
+		);
+		
+//		if(is_array($fields))
+//		foreach($fields as $cf_id => $field) {
+//			$token_labels['custom_'.$cf_id] = $prefix.$field->name;
+//		}
+
+		// Token values
+		$token_values = array();
+		
+		// Token values
+		if(null != $article) {
+			$token_values['content'] = $article->content;
+			$token_values['is_html'] = $article->format;
+			$token_values['id'] = $article->id;
+			$token_values['title'] = $article->title;
+			$token_values['updated'] = $article->updated;
+			$token_values['views'] = $article->views;
+			
+			// Categories
+			if(null != ($categories = $article->getCategories()) && is_array($categories)) {
+				$token_values['categories'] = array();
+				
+				foreach($categories as $category_id => $trail) {
+					foreach($trail as $step_id => $step) {
+						if(!isset($token_values['categories'][$category_id]))
+							$token_values['categories'][$category_id] = array();
+						$token_values['categories'][$category_id][$step_id] = $step->name;
+					}
+				}
+			}
+			
+			//$token_values['custom'] = array();
+			
+//			$field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Address::ID, $address->id));
+//			if(is_array($field_values) && !empty($field_values)) {
+//				foreach($field_values as $cf_id => $cf_val) {
+//					if(!isset($fields[$cf_id]))
+//						continue;
+//					
+//					// The literal value
+//					if(null != $address)
+//						$token_values['custom'][$cf_id] = $cf_val;
+//					
+//					// Stringify
+//					if(is_array($cf_val))
+//						$cf_val = implode(', ', $cf_val);
+//						
+//					if(is_string($cf_val)) {
+//						if(null != $address)
+//							$token_values['custom_'.$cf_id] = $cf_val;
+//					}
+//				}
+//			}
+		}
+		
+		return true;
+	}	
+	
+	/**
+	 * 
 	 * @param mixed $message
 	 * @param array $token_labels
 	 * @param array $token_values
@@ -1162,6 +1443,9 @@ class CerberusContexts {
 		// Token labels
 		$token_labels = array(
 			'content' => $prefix.$translate->_('common.content'),
+			'created|date' => $prefix.$translate->_('common.created'),
+			'is_outgoing' => $prefix.$translate->_('message.is_outgoing'),
+			'storage_size' => $prefix.$translate->_('message.storage_size'),
 		);
 		
 		// Token values
@@ -1169,8 +1453,13 @@ class CerberusContexts {
 		
 		// Message token values
 		if($message) {
-			$token_values['id'] = $message->id;
 			$token_values['content'] = $message->getContent();
+			$token_values['created'] = $message->created_date;
+			$token_values['id'] = $message->id;
+			$token_values['is_outgoing'] = $message->is_outgoing;
+			$token_values['storage_size'] = $message->storage_size;
+			$token_values['ticket_id'] = $message->ticket_id;
+			$token_values['worker_id'] = $message->worker_id;
 		}
 
 		// Sender
@@ -1227,6 +1516,7 @@ class CerberusContexts {
 		
 		// Notification token values
 		if($notification) {
+			$token_values['id'] = $notification->id;
 			$token_values['content'] = $notification->content;
 			$token_values['created'] = $notification->created_date;
 			$token_values['id'] = $notification->id;
@@ -1298,6 +1588,7 @@ class CerberusContexts {
 		
 		// Org token values
 		if($org) {
+			$token_values['id'] = $org->id;
 			$token_values['name'] = $org->name;
 			$token_values['created'] = $org->created;
 			if(!empty($org->city))
@@ -1365,6 +1656,7 @@ class CerberusContexts {
 		
 		// Token labels
 		$token_labels = array(
+			'amount' => $prefix.$translate->_('crm.opportunity.amount'),
 			'created|date' => $prefix.$translate->_('crm.opportunity.created_date'),
 			'is_closed' => $prefix.$translate->_('crm.opportunity.is_closed'),
 			'is_won' => $prefix.$translate->_('crm.opportunity.is_won'),
@@ -1382,6 +1674,8 @@ class CerberusContexts {
 		
 		// Opp token values
 		if($opp) {
+			$token_values['id'] = $opp->id;
+			$token_values['amount'] = $opp->amount;
 			$token_values['created'] = $opp->created_date;
 			$token_values['is_closed'] = $opp->is_closed;
 			$token_values['is_won'] = $opp->is_won;
@@ -1658,6 +1952,106 @@ class CerberusContexts {
 		self::_merge(
 			'assignee_',
 			'Assignee:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);			
+		
+		return true;
+	}	
+	
+	private static function _getFeedbackContext($feedback, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'Feedback:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		$fields = DAO_CustomField::getBySource(ChCustomFieldSource_FeedbackEntry::ID);
+
+		// Polymorph
+		if(is_numeric($feedback)) {
+			$feedback = DAO_FeedbackEntry::get($feedback);
+		} elseif($feedback instanceof Model_FeedbackEntry) {
+			// It's what we want already.
+		} else {
+			$feedback = null;
+		}
+		
+		// Token labels
+		$token_labels = array(
+			'created|date' => $prefix.$translate->_('feedback_entry.log_date'),
+			'id' => $prefix.$translate->_('feedback_entry.id'),
+			'quote_mood' => $prefix.$translate->_('feedback_entry.quote_mood'),
+			'quote_text' => $prefix.$translate->_('feedback_entry.quote_text'),
+			'url' => $prefix.$translate->_('feedback_entry.source_url'),
+		);
+		
+		if(is_array($fields))
+		foreach($fields as $cf_id => $field) {
+			$token_labels['custom_'.$cf_id] = $prefix.$field->name;
+		}
+
+		// Token values
+		$token_values = array();
+		
+		if($feedback) {
+			$token_values['id'] = $feedback->id;
+			$token_values['created'] = $feedback->log_date;
+			$token_values['quote_text'] = $feedback->quote_text;
+			$token_values['url'] = $feedback->source_url;
+
+			$mood = $feedback->quote_mood;
+			$token_values['quote_mood_id'] = $mood;
+			$token_values['quote_mood'] = ($mood ? (2==$mood ? 'criticism' : 'praise' ) : 'neutral');
+			
+			$token_values['custom'] = array();
+			
+			$field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_FeedbackEntry::ID, $feedback->id));
+			if(is_array($field_values) && !empty($field_values)) {
+				foreach($field_values as $cf_id => $cf_val) {
+					if(!isset($fields[$cf_id]))
+						continue;
+					
+					// The literal value
+					if(null != $org)
+						$token_values['custom'][$cf_id] = $cf_val;
+					
+					// Stringify
+					if(is_array($cf_val))
+						$cf_val = implode(', ', $cf_val);
+						
+					if(is_string($cf_val)) {
+						if(null != $org)
+							$token_values['custom_'.$cf_id] = $cf_val;
+					}
+				}
+			}
+		}
+
+		// Author
+		@$address_id = $feedback->quote_address_id;
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_ADDRESS, $address_id, $merge_token_labels, $merge_token_values, '', true);
+
+		self::_merge(
+			'author_',
+			'Author:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);			
+		
+		// Created by (Worker)
+		@$assignee_id = $feedback->worker_id;
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_WORKER, $assignee_id, $merge_token_labels, $merge_token_values, '', true);
+
+		self::_merge(
+			'worker_',
+			'Worker:',
 			$merge_token_labels,
 			$merge_token_values,
 			$token_labels,
