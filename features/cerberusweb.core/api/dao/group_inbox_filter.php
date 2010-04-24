@@ -656,11 +656,11 @@ class Model_GroupInboxFilter {
 					
 					if(is_array($tickets))
 					foreach($tickets as $ticket_id => $row) {
-						CerberusTemplates::getTicketSearchTokens($row, $tpl_labels, $tpl_tokens);
+						CerberusContexts::getContext(CerberusContexts::CONTEXT_TICKET, $row, $tpl_labels, $tpl_tokens);
 						$body = $tpl_builder->build($params['message'], $tpl_tokens);
 						
 						$fields = array(
-							DAO_MailQueue::TYPE => 'ticket.reply',
+							DAO_MailQueue::TYPE => Model_MailQueue::TYPE_TICKET_REPLY,
 							DAO_MailQueue::TICKET_ID => $ticket_id,
 							DAO_MailQueue::WORKER_ID => $params['worker_id'],
 							DAO_MailQueue::UPDATED => time(),

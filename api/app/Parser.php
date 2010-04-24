@@ -102,7 +102,7 @@ class CerberusParser {
 		$msginfo = mailparse_msg_get_part_data($mime);
 		
 		$message = new CerberusParserMessage();
-		@$message->encoding = $msginfo['content-charset'];
+		@$message->encoding = $msginfo['charset'];
 		@$message->body_encoding = $message->encoding; // default
 
 		// Decode headers
@@ -135,11 +135,11 @@ class CerberusParser {
 		        if($info['content-type'] == 'text/plain') {
 					$text = mailparse_msg_extract_part_file($section, $full_filename, NULL);
 					
-					if(isset($info['content-charset']) && !empty($info['content-charset'])) {
-						$message->body_encoding = $info['content-charset'];
+					if(isset($info['charset']) && !empty($info['charset'])) {
+						$message->body_encoding = $info['charset'];
 						
-						if(@mb_check_encoding($text, $info['content-charset'])) {
-							$text = mb_convert_encoding($text, LANG_CHARSET_CODE, $info['content-charset']);
+						if(@mb_check_encoding($text, $info['charset'])) {
+							$text = mb_convert_encoding($text, LANG_CHARSET_CODE, $info['charset']);
 						} else {
 							$text = mb_convert_encoding($text, LANG_CHARSET_CODE);
 						}
@@ -153,9 +153,9 @@ class CerberusParser {
 		        } elseif($info['content-type'] == 'text/html') {
 	        		@$text = mailparse_msg_extract_part_file($section, $full_filename, NULL);
 
-					if(isset($info['content-charset']) && !empty($info['content-charset'])) {
-						if(@mb_check_encoding($text, $info['content-charset'])) {
-							$text = mb_convert_encoding($text, LANG_CHARSET_CODE, $info['content-charset']);
+					if(isset($info['charset']) && !empty($info['charset'])) {
+						if(@mb_check_encoding($text, $info['charset'])) {
+							$text = mb_convert_encoding($text, LANG_CHARSET_CODE, $info['charset']);
 						} else {
 							$text = mb_convert_encoding($text, LANG_CHARSET_CODE);
 						}
@@ -497,7 +497,8 @@ class CerberusParser {
 						$i++;
 					} 				
 					
-	        		CerberusMail::sendTicketMessage(array(
+	        		$result = CerberusMail::sendTicketMessage(array(
+						'ticket_id' => $id,
 						'message_id' => $msgid,
 						'content' => $message->body,
 						'files' => $attachment_files,
@@ -567,7 +568,7 @@ class CerberusParser {
 				DAO_Ticket::FIRST_WROTE_ID => intval($fromAddressInst->id),
 				DAO_Ticket::LAST_WROTE_ID => intval($fromAddressInst->id),
 				DAO_Ticket::CREATED_DATE => $iDate,
-				DAO_Ticket::UPDATED_DATE => $iDate,
+				DAO_Ticket::UPDATED_DATE => time(),
 				DAO_Ticket::LAST_ACTION_CODE => CerberusTicketActionCode::TICKET_OPENED,
 			);
 			$id = DAO_Ticket::createTicket($fields);
@@ -680,7 +681,8 @@ class CerberusParser {
 		if($bIsNew && !empty($id) && !empty($email_id)) {
 			// First thread (needed for anti-spam)
 			DAO_Ticket::updateTicket($id, array(
-				 DAO_Ticket::FIRST_MESSAGE_ID => $email_id
+				 DAO_Ticket::FIRST_MESSAGE_ID => $email_id,
+				 DAO_Ticket::LAST_MESSAGE_ID => $email_id,
 			));
 			
 			// Prime the change fields (which a few things like anti-spam might change before we commit)
@@ -755,17 +757,26 @@ class CerberusParser {
 				&& !empty($autoreply) 
 				&& $enumSpamTraining != CerberusTicketSpamTraining::SPAM
 				) {
-					CerberusMail::sendTicketMessage(array(
-						'ticket_id' => $id,
-						'message_id' => $email_id,
-						'content' => str_replace(
-				        	array('#ticket_id#','#mask#','#subject#','#timestamp#', '#sender#','#sender_first#','#orig_body#'),
-				        	array($id, $sMask, $sSubject, date('r'), $fromAddressInst->email, $fromAddressInst->first_name, ltrim($message->body)),
-				        	$autoreply
-						),
-						'is_autoreply' => true,
-						'dont_keep_copy' => true
-					));
+					try {
+						$token_labels = array();
+						$token_values = array();
+						CerberusContexts::getContext(CerberusContexts::CONTEXT_TICKET, $id, $token_labels, $token_values);
+						
+						$tpl_builder = DevblocksPlatform::getTemplateBuilder();
+						if(false === ($autoreply_content = $tpl_builder->build($autoreply, $token_values)))
+							throw new Exception('Failed parsing auto-reply snippet.');
+						
+						$result = CerberusMail::sendTicketMessage(array(
+							'ticket_id' => $id,
+							'message_id' => $email_id,
+							'content' => $autoreply_content,
+							'is_autoreply' => true,
+							'dont_keep_copy' => true
+						));
+						
+					} catch (Exception $e) {
+						// [TODO] Error handling
+					}
 			}
 			
 		} // end bIsNew
@@ -779,6 +790,7 @@ class CerberusParser {
 			    DAO_Ticket::IS_WAITING => 0,
 			    DAO_Ticket::IS_CLOSED => 0,
 			    DAO_Ticket::IS_DELETED => 0,
+			    DAO_Ticket::LAST_MESSAGE_ID => $email_id,
 			    DAO_Ticket::LAST_WROTE_ID => $fromAddressInst->id,
 			    DAO_Ticket::LAST_ACTION_CODE => CerberusTicketActionCode::TICKET_CUSTOMER_REPLY,
 			));

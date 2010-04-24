@@ -9,11 +9,28 @@
 	
 	<!-- Plugin Dependencies -->
 	
-	<!-- 
-	<requires>
-		<plugin id="plugin.core.id" version=">= 1.0" />
-	</requires>
-	 -->
+	<dependencies>
+		<require plugin_id="devblocks.core" version="2.0.0" />
+	</dependencies>
+
+	<!-- Patches -->
+	
+	<patches>
+		<patch version="4.0.0-alpha" revision="180" file="patches/4.x/4.0.0_alpha.php" />
+		<patch version="4.0.0-beta" revision="555" file="patches/4.x/4.0.0_beta.php" />
+		<patch version="4.0.0-rc1" revision="809" file="patches/4.x/4.0.0_rc1.php" />
+		<patch version="4.1.0" revision="826" file="patches/4.x/4.1.0.php" />
+		<patch version="4.1.1" revision="827" file="patches/4.x/4.1.1.php" />
+		<patch version="4.2.0" revision="830" file="patches/4.x/4.2.0.php" />
+		<patch version="4.2.1" revision="832" file="patches/4.x/4.2.1.php" />
+		<patch version="4.2.3" revision="834" file="patches/4.x/4.2.3.php" />
+		<patch version="4.3.0" revision="836" file="patches/4.x/4.3.0.php" />
+		<patch version="4.3.1" revision="837" file="patches/4.x/4.3.1.php" />
+		
+		<patch version="5.0.0-alpha" revision="855" file="patches/5.x/5.0.0_alpha.php" />
+		<patch version="5.0.0-beta" revision="856" file="patches/5.x/5.0.0_beta.php" />
+		<patch version="5.0.0-rc1" revision="858" file="patches/5.x/5.0.0_rc1.php" />
+	</patches>
 
 	<!-- Declared Extension Points -->
 
@@ -140,6 +157,13 @@
 			<class name="Model_PreParseRule" />
 		</file>
 		
+		<file path="api/dao/snippet.php">
+			<class name="DAO_Snippet" />
+			<class name="Model_Snippet" />
+			<class name="SearchField_Snippet" />
+			<class name="View_Snippet" />
+		</file>
+		
 		<file path="api/dao/task.php">
 			<class name="DAO_Task" />
 			<class name="Model_Task" />
@@ -193,6 +217,11 @@
 			<name>Group Delete</name>
 			<param key="group_ids" />
 		</event>
+		<event id="task.create">
+			<name>Task Create</name>
+			<param key="task_id" />
+			<param key="fields" />
+		</event>
 		<event id="ticket.comment.create">
 			<name>Ticket Comment</name>
 			<param key="comment_id" />
@@ -237,6 +266,7 @@
 		<priv id="core.addybook" label="acl.core.addybook" />
 		<priv id="core.addybook.actions.import" label="acl.core.addybook.actions.import" />
 		<priv id="core.addybook.addy.actions.update" label="acl.core.addybook.addy.actions.update" />
+		<priv id="core.addybook.addy.view.actions.broadcast" label="acl.core.addybook.addy.view.actions.broadcast" />
 		<priv id="core.addybook.addy.view.actions.export" label="acl.core.addybook.addy.view.actions.export" />
 		<priv id="core.addybook.org.actions.update" label="acl.core.addybook.org.actions.update" />
 		<priv id="core.addybook.org.actions.delete" label="acl.core.addybook.org.actions.delete" />
@@ -413,32 +443,6 @@
 			</params>
 		</extension>
 
-		<!-- Translations -->
-		
-		<extension point="devblocks.i18n.strings">
-			<id>core.translations</id>
-			<name>Cerberus Helpdesk Strings</name>
-			<class>
-				<file>api/plugin.classes.php</file>
-				<name>ChTranslations</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-
-		<!-- Patch Containers -->
-		
-		<extension point="devblocks.patch.container">
-			<id>core.patches</id>
-			<name>Cerberus Helpdesk Patches</name>
-			<class>
-				<file>api/patch.classes.php</file>
-				<name>ChCorePatchContainer</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-	
 		<!-- Http Listeners -->
 		
 		<extension point="devblocks.listener.http">

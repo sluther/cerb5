@@ -167,12 +167,11 @@
 <br>
 
 <button type="submit"><span class="cerb-sprite sprite-check"></span> {$translate->_('common.save_changes')|capitalize}</button>
-<button type="button" onclick="genericPanel.dialog('close');"><span class="cerb-sprite sprite-delete"></span> {$translate->_('common.cancel')|capitalize}</button>
 </form>
 
 <script language="JavaScript1.2" type="text/javascript">
 	genericPanel.one('dialogopen',function(event,ui) {
-		genericPanel.dialog('option','title',"{$ticket->subject|escape:'quotes'}");
+		genericPanel.dialog('option','title',"{$ticket->subject|escape}");
 		$("#peekTabs").tabs();
 		$("#ticketPeekContent").css('width','100%');
 		$("#ticketPeekTab2").show();

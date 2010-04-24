@@ -5,8 +5,6 @@
 <input type="hidden" name="action" value="saveWatcherPanel">
 <input type="hidden" name="id" value="{$filter->id}">
 
-<h2>Add Watcher Filter</h2>
-
 <b>Filter Name:</b> (e.g. Emergency Support to SMS)<br>
 <input type="text" name="name" value="{$filter->name|escape}" size="45" style="width:95%;"><br>
 
@@ -236,7 +234,7 @@
 <label><input type="checkbox" name="do[]" value="email" {if !is_null($filter->actions.email)}checked="checked"{/if}> <b>Forward e-mail to:</b></label><br>
 <blockquote style="margin-top:0px;" id="div_do_email">
 	{foreach from=$addresses item=address}
-	<label><input type="checkbox" name="do_email[]" value="{$address->address|escape}" {if is_array($act_email.to) && in_array($address->address,$act_email.to)}checked="checked"{/if}> {$address->address}</label><br>
+	<label><input type="checkbox" name="do_email[]" value="{$address->address|escape}" {if is_array($act_email.to) && in_array($address->address,$act_email.to)}checked="checked"{/if} onclick="if(this.checked) $('#frmWatcherFilter input[name=do\[\]][value=email]').attr('checked','checked');"> {$address->address}</label><br>
 	{/foreach}
 </blockquote>
 
@@ -245,3 +243,9 @@
 <button type="button" onclick="genericAjaxPanelPostCloseReloadView('frmWatcherFilter', '{$view_id}');"><span class="cerb-sprite sprite-check"></span> {$translate->_('common.save_changes')}</button>
 </form>
 <br>
+
+<script type="text/javascript" language="JavaScript1.2">
+	genericPanel.one('dialogopen', function(event,ui) {
+		genericPanel.dialog('option','title',"Add Watcher Filter");
+	} );
+</script>

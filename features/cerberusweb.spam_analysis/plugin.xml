@@ -8,22 +8,18 @@
 	<author>WebGroup Media, LLC.</author>
 	<revision>0</revision>
 	<link>http://wiki.cerb4.com/wiki/</link>
+	<image>plugin.png</image>
+	
+	<!-- Plugin Dependencies -->
+	
+	<dependencies>
+		<require plugin_id="cerberusweb.core" version="5.0.0-beta" />
+	</dependencies>
+
+	<!-- Extensions -->
 	
 	<extensions>
 
-		<!-- Translations -->
-		
-		<extension point="devblocks.i18n.strings">
-			<id>spamanalysis.translations</id>
-			<name>Spam Strings</name>
-			<class>
-				<file>api/Plugin.php</file>
-				<name>ChSpamAnalysisTranslations</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-		
 		<!-- Ticket Tabs -->
 		
 		<extension point="cerberusweb.ticket.tab">

@@ -6,6 +6,19 @@
 	<author>WebGroup Media, LLC.</author>
 	<revision>0</revision>
 	<link>http://www.cerberusweb.com/</link>
+	<image>plugin.png</image>
+	
+	<!-- Plugin Dependencies -->
+	
+	<dependencies>
+		<require plugin_id="cerberusweb.core" version="5.0.0-beta" />
+	</dependencies>
+	
+	<!-- Patches -->
+	
+	<patches>
+		<patch version="5.0.0-beta" revision="3" file="patches/5.0.0_beta.php" />
+	</patches>
 	
 	<!-- Exported Classes -->
 	
@@ -43,32 +56,6 @@
 	
 	<extensions>
 	
-		<!-- Patch Containers -->
-		
-		<extension point="devblocks.patch.container">
-			<id>cerberusweb.kb.patches</id>
-			<name>Knowledgebase Patches</name>
-			<class>
-				<file>api/Patch.php</file>
-				<name>ChKbPatchContainer</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-
-		<!-- Translations -->
-		
-		<extension point="devblocks.i18n.strings">
-			<id>cerberusweb.kb.translations</id>
-			<name>Knowledgebase Strings</name>
-			<class>
-				<file>api/Plugin.php</file>
-				<name>ChKbTranslations</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-		
 		<!--
 		<extension point="cerberusweb.page">
 			<id>core.page.kb</id>
@@ -211,6 +198,20 @@
 			</params>
 		</extension>
 		-->
+		
+		<!-- REST Controllers -->
+		
+		<extension point="cerberusweb.rest.controller">
+			<id>cerberusweb.rest.controller.kbarticles</id>
+			<name>KB Articles</name>
+			<class>
+				<file>api/rest/kbarticles.php</file>
+				<name>ChRest_KbArticles</name>
+			</class>
+			<params>
+				<param key="uri" value="kbarticles" />
+			</params>
+		</extension>		
 		
 	</extensions>
 </plugin>

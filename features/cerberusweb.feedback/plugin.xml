@@ -6,12 +6,30 @@
 	<author>WebGroup Media, LLC.</author>
 	<revision>0</revision>
 	<link>http://wiki.cerb4.com/wiki/</link>
+	<image>images/plugin.png</image>
+	
+	<!-- Plugin Dependencies -->
+	
+	<dependencies>
+		<require plugin_id="cerberusweb.core" version="5.0.0-beta" />
+	</dependencies>
+	
+	<!-- Patches -->
+	
+	<patches>
+		<patch version="4.1.0" revision="4" file="patches/4.1.0.php" />
+	</patches>
 	
 	<!-- Exported Classes -->
 	
 	<class_loader>
 		<file path="api/App.php">
 			<class name="C4_FeedbackEntryView" />
+			<class name="ChCustomFieldSource_FeedbackEntry" />
+			<class name="ChWorkspaceSource_FeedbackEntry" />
+			<class name="DAO_FeedbackEntry" />
+			<class name="Model_FeedbackEntry" />
+			<class name="SearchFields_FeedbackEntry" />
 		</file>
 	</class_loader>
 	
@@ -23,32 +41,6 @@
 	</acl>
 	
 	<extensions>
-	
-		<!-- Patch Containers -->
-		
-		<extension point="devblocks.patch.container">
-			<id>feedback.patches</id>
-			<name>Feedback Patches</name>
-			<class>
-				<file>api/Patch.php</file>
-				<name>ChFeedbackPatchContainer</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-	
-		<!-- Translations -->
-		
-		<extension point="devblocks.i18n.strings">
-			<id>feedback.translations</id>
-			<name>Feedback Strings</name>
-			<class>
-				<file>api/Plugin.php</file>
-				<name>ChFeedbackTranslations</name>
-			</class>
-			<params>
-			</params>
-		</extension>
 	
 		<!-- Activity Tabs -->
 		
@@ -118,6 +110,20 @@
 				<param key="view_class" value="C4_FeedbackEntryView" />
 			</params>
 		</extension>
+		 
+		<!-- REST Controllers -->
+		
+		<extension point="cerberusweb.rest.controller">
+			<id>feedback.rest.controller.feedback</id>
+			<name>Feedback</name>
+			<class>
+				<file>api/rest/feedback.php</file>
+				<name>ChRest_Feedback</name>
+			</class>
+			<params>
+				<param key="uri" value="feedback" />
+			</params>
+		</extension>		
 		 
 	</extensions>
 </plugin>

@@ -1,10 +1,3 @@
-<table cellpadding="0" cellspacing="0" border="0" width="98%">
-	<tr>
-		<td align="left" width="1%" nowrap="nowrap" style="padding-right:5px;"><span class="cerb-sprite sprite-folder_gear"></span></td>
-		<td align="left" width="100%"><h1>{$translate->_('common.bulk_update')|capitalize}</h1></td>
-	</tr>
-</table>
-
 <form action="{devblocks_url}{/devblocks_url}" method="POST" id="formBatchUpdate" name="formBatchUpdate">
 <input type="hidden" name="c" value="crm">
 <input type="hidden" name="a" value="doOppBulkUpdate">
@@ -58,11 +51,56 @@
 			<div id="dateOppBulkClosed"></div>
       	</td>
 	</tr>
-</table>
 	
+	{if $active_worker->hasPriv('crm.opp.view.actions.broadcast')}
+	<tr>
+		<td width="0%" nowrap="nowrap" align="right"><label for="chkMassReply">Broadcast:</label></td>
+		<td width="100%">
+			<input type="checkbox" name="do_broadcast" id="chkMassReply" onclick="$('#bulkOppBroadcast').toggle();">
+		</td>
+	</tr>
+	{/if}
+</table>
+
+{if $active_worker->hasPriv('crm.opp.view.actions.broadcast')}
+<blockquote id="bulkOppBroadcast" style="display:none;margin:10px;">
+	<b>From:</b> <br>
+	<select name="broadcast_group_id">
+		{foreach from=$groups item=group key=group_id}
+		{if $active_worker_memberships.$group_id}
+		<option value="{$group->id}|escape">{$group->name}</option>
+		{/if}
+		{/foreach}
+	</select>
+	<br>
+	<b>Subject:</b> <br>
+	<input type="text" name="broadcast_subject" value="" style="width:100%;border:1px solid rgb(180,180,180);padding:2px;"><br>
+	<b>Compose:</b> {*[<a href="#">syntax</a>]*}<br>
+	<textarea name="broadcast_message" style="width:100%;height:200px;border:1px solid rgb(180,180,180);padding:2px;"></textarea>
+	<br>
+	<button type="button" onclick="genericAjaxPost('formBatchUpdate','bulkOppBroadcastTest','c=crm&a=doOppBulkUpdateBroadcastTest');"><span class="cerb-sprite sprite-gear"></span> Test</button><!--
+	--><select onchange="insertAtCursor(this.form.broadcast_message,this.options[this.selectedIndex].value);this.selectedIndex=0;this.form.broadcast_message.focus();">
+		<option value="">-- insert at cursor --</option>
+		{foreach from=$token_labels key=k item=v}
+		<option value="{literal}{{{/literal}{$k}{literal}}}{/literal}">{$v|escape}</option>
+		{/foreach}
+	</select>
+	<br>
+	<div id="bulkOppBroadcastTest"></div>
+	<label><input type="radio" name="broadcast_is_queued" value="0" checked="checked"> Save as drafts</label>
+	<label><input type="radio" name="broadcast_is_queued" value="1"> Send now</label>
+</blockquote>
+{/if}
+
 {include file="file:$core_tpl/internal/custom_fields/bulk/form.tpl" bulk=true}
 
 <br>
 
 <button type="button" onclick="genericPanel.dialog('close');genericAjaxPost('formBatchUpdate','view{$view_id}');"><span class="cerb-sprite sprite-check"></span> {$translate->_('common.save_changes')|capitalize}</button>
 </form>
+
+<script type="text/javascript" language="JavaScript1.2">
+	genericPanel.one('dialogopen', function(event,ui) {
+		genericPanel.dialog('option','title',"{$translate->_('common.bulk_update')|capitalize|escape:'quotes'}");
+	} );
+</script>

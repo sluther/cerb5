@@ -1,17 +1,34 @@
 <!DOCTYPE plugin SYSTEM "../../libs/devblocks/plugin.dtd">
 <plugin>
 	<id>cerberusweb.crm</id>
-	<name>[Cerb5] Opportunity Tracking (Experimental)</name>
+	<name>[Cerb5] Opportunity Tracking</name>
 	<description>Create opportunities (sales leads) linked to e-mail addresses. Opportunity records can be created from the Activity menu or while reading tickets.</description>
 	<author>WebGroup Media, LLC.</author>
 	<revision>0</revision>
 	<link>http://www.cerberusweb.com/</link>
+	<image>plugin.png</image>
+	
+	<!-- Plugin Dependencies -->
+	
+	<dependencies>
+		<require plugin_id="cerberusweb.core" version="5.0.0-beta" />
+	</dependencies>
+	
+	<!-- Patches -->
+	
+	<patches>
+		<patch version="4.0.0-alpha" revision="6" file="patches/4.0.0_alpha.php" />
+		<patch version="4.1.0" revision="12" file="patches/4.1.0.php" />
+	</patches>
 	
 	<!-- Exported Classes -->
 	
 	<class_loader>
 		<file path="api/App.php">
+			<class name="CrmCustomFieldSource_Opportunity" />
 			<class name="DAO_CrmOpportunity" />
+			<class name="Model_CrmOpportunity" />
+			<class name="SearchFields_CrmOpportunity" />
 			<class name="View_CrmOpportunity" />
 		</file>
 	</class_loader>
@@ -21,24 +38,22 @@
 		<priv id="crm.opp.actions.import" label="acl.crm.opp.actions.import" />
 		<priv id="crm.opp.actions.update_nobody" label="acl.crm.opp.actions.update_nobody" />
 		<priv id="crm.opp.actions.update_all" label="acl.crm.opp.actions.update_all" />
+		<priv id="crm.opp.view.actions.broadcast" label="acl.crm.opp.view.actions.broadcast" />
 		<priv id="crm.opp.view.actions.export" label="acl.crm.opp.view.actions.export" />
 	</acl>
 	
+	<!-- Events -->
+	
+	<event_points>
+		<event id="opportunity.create">
+			<name>Opportunity Create</name>
+			<param key="opp_id" />
+			<param key="fields" />
+		</event>
+	</event_points>
+	
 	<extensions>
 	
-		<!-- Patch Containers -->
-		
-		<extension point="devblocks.patch.container">
-			<id>crm.patches</id>
-			<name>CRM Patches</name>
-			<class>
-				<file>api/Patch.php</file>
-				<name>CrmPatchContainer</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-
 		<!-- Event Listeners -->
 		
 		<extension point="devblocks.listener.event">
@@ -57,19 +72,6 @@
 			</params>
 		</extension>
 
-		<!-- Translations -->
-		
-		<extension point="devblocks.i18n.strings">
-			<id>crm.translations</id>
-			<name>CRM Strings</name>
-			<class>
-				<file>api/Plugin.php</file>
-				<name>CrmTranslations</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-		
 		<!-- Activity Tabs -->
 		
 		<extension point="cerberusweb.activity.tab">
@@ -182,6 +184,20 @@
 				<param key="title" value="crm.tab.title" />
 			</params>
 		</extension>
+		
+		<!-- REST Controllers -->
+		
+		<extension point="cerberusweb.rest.controller">
+			<id>crm.rest.controller.opps</id>
+			<name>Opportunities</name>
+			<class>
+				<file>api/rest/opps.php</file>
+				<name>ChRest_Opps</name>
+			</class>
+			<params>
+				<param key="uri" value="opps" />
+			</params>
+		</extension>		
 		
 	</extensions>
 </plugin>

@@ -3,10 +3,9 @@
 <br>
 
 {if empty($license.key)}
-	<span style="color:rgb(200,0,0);">No License (Free Mode)</span><br>
+	<span style="color:rgb(200,0,0);">No License (Community Edition)</span><br>
 	<ul style="margin-top:0px;">
 		<li>Limited to 3 workers</li>
-		<li>Cerberus Helpdesk tagline on outgoing e-mail</li>
 		<li>Worker itemized permissions are disabled</li>
 		<li><a href="http://www.cerberusweb.com/buy" target="_blank">Purchase a Cerberus Helpdesk license</a></li>
 	</ul> 
@@ -19,7 +18,7 @@
 	Created: {$license.created|devblocks_date:'Y-m-d':true}<br>
 	Updated: {$license.updated|devblocks_date:'Y-m-d':true}<br>
 	Expires: {$license.expires|devblocks_date:'Y-m-d':true}<br>
-	Workers: {if 50==$license.workers}50+{else}{$license.workers}{/if}<br>
+	Workers: {if 100==$license.workers}100+{else}{$license.workers}{/if}<br>
 	## END<br>
 	<br>
 	<a href="javascript:;" onclick="$(this).fadeOut();$('#frmLicense').fadeIn();">add new license</a>

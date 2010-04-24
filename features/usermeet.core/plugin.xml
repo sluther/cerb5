@@ -1,11 +1,29 @@
 <!DOCTYPE plugin SYSTEM "../../libs/devblocks/plugin.dtd">
 <plugin>
 	<id>usermeet.core</id>
-	<name>[Cerb5] Usermeet Communities</name>
+	<name>[Cerb5] Community Portals</name>
 	<description>Community-focused websites; the customer-facing interfaces of Cerberus Helpdesk.</description>
 	<author>WebGroup Media, LLC.</author>
 	<revision>0</revision>
 	<link>http://wiki.cerb4.com/wiki/New_Changes#Community_Tools</link>
+	<image>plugin.png</image>
+	
+	<!-- Plugin Dependencies -->
+	
+	<dependencies>
+		<require plugin_id="cerberusweb.core" version="5.0.0-beta" />
+	</dependencies>
+
+	<!-- Patches -->
+	
+	<patches>
+		<patch version="4.0.0-alpha" revision="11" file="patches/4.0.0_alpha.php" />
+		<patch version="4.1.0" revision="13" file="patches/4.1.0.php" />
+		<patch version="4.2.2" revision="14" file="patches/4.2.2.php" />
+		<patch version="4.3.0" revision="15" file="patches/4.3.0.php" />
+		<patch version="4.3.1" revision="16" file="patches/4.3.1.php" />
+		<patch version="5.0.0-beta" revision="19" file="patches/5.0.0_beta.php" />
+	</patches>
 	
 	<!-- Exported Classes -->
 	
@@ -54,32 +72,6 @@
 	
 	<extensions>
 	
-		<!-- Patch Containers -->
-		
-		<extension point="devblocks.patch.container">
-			<id>usermeet.patches</id>
-			<name>Usermeet Patches</name>
-			<class>
-				<file>patch.classes.php</file>
-				<name>UmPatchContainer</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-
-		<!-- Translations -->
-		
-		<extension point="devblocks.i18n.strings">
-			<id>usermeet.translations</id>
-			<name>Community Tools Strings</name>
-			<class>
-				<file>api/Plugin.php</file>
-				<name>UmTranslations</name>
-			</class>
-			<params>
-			</params>
-		</extension>
-
 		<!-- Controllers -->
 	
 		<extension point="devblocks.controller">
