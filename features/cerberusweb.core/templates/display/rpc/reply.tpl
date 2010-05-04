@@ -12,53 +12,39 @@
 				{if $assigned_worker_id > 0 && $assigned_worker_id != $active_worker->id && isset($workers.$assigned_worker_id)}
 				<tr>
 					<td width="100%" colspan="2">
-						<div class="error">
-							{'display.reply.warn_assigned'|devblocks_translate:$workers.$assigned_worker_id->getName()}.
+						<div class="ui-widget">
+							<div class="ui-state-error ui-corner-all" style="padding: 0 .7em; margin: 0.2em; "> 
+								<p><span class="ui-icon ui-icon-alert" style="float: left; margin-right: .3em;"></span> 
+								{'display.reply.warn_assigned'|devblocks_translate:$workers.$assigned_worker_id->getName()}.</p>
+							</div>
 						</div>
 					</td>
 				</tr>
 				{/if}
 				
-				{if $is_forward}
-					<tr>
-						<td width="1%" nowrap="nowrap"><b>{$translate->_('message.header.to')|capitalize}: </b></td>
-						<td width="99%" align="left">
-							<input type="text" size="45" name="to" value="{$draft->params.to|escape}" onchange="$('#reply{$message->id}_part2 input[name=to]').val(this.value);" style="width:50%;border:1px solid rgb(180,180,180);padding:2px;" class="required">
-						</td>
-					</tr>
-				{else}
-					<tr>
-						<td width="1%" nowrap="nowrap">{$translate->_('ticket.requesters')|capitalize}: </td>
-						<td width="99%" align="left">
-							<span id="displayRequesters{$message->id}">
-							{foreach from=$ticket->getRequesters() item=requester name=requesters}
-							<b>{$requester->email}</b>{if !$smarty.foreach.requesters.last}, {/if}
-							{/foreach}
-							</span>
-							(<a href="javascript:;" onclick="genericAjaxPanel('c=display&a=showRequestersPanel&msg_id={$message->id}&ticket_id={$ticket->id}',this,false);" style="color:rgb(00,120,0);">{$translate->_('common.edit')|lower}</a>)
-							<!-- 
-							<input type="text" size="45" name="to" value="" style="width:98%;border:1px solid rgb(180,180,180);padding:2px;">
-							-->					
-						</td>
-					</tr>
-				{/if}
+				<tr>
+					<td width="1%" nowrap="nowrap"><b>{$translate->_('message.header.to')|capitalize}:</b> </td>
+					<td width="99%" align="left">
+						<input type="text" size="45" name="to" value="{if !empty($draft)}{$draft->params.to|escape}{else}{if $is_forward}{else}{foreach from=$ticket->getRequesters() item=req_addy name=reqs}{$req_addy->email}{if !$smarty.foreach.reqs.last}, {/if}{/foreach}{/if}{/if}" onchange="$('#reply{$message->id}_part2 input[name=to]').val(this.value);" {if $is_forward}class="required"{/if} style="width:100%;border:1px solid rgb(180,180,180);padding:2px;">
+					</td>
+				</tr>
 				
 				<tr>
 					<td width="1%" nowrap="nowrap">{$translate->_('message.header.cc')|capitalize}: </td>
 					<td width="99%" align="left">
-						<input type="text" size="45" name="cc" value="{$draft->params.cc|escape}" onchange="$('#reply{$message->id}_part2 input[name=cc]').val(this.value);" style="width:50%;border:1px solid rgb(180,180,180);padding:2px;">					
+						<input type="text" size="45" name="cc" value="{$draft->params.cc|escape}" onchange="$('#reply{$message->id}_part2 input[name=cc]').val(this.value);" style="width:100%;border:1px solid rgb(180,180,180);padding:2px;">					
 					</td>
 				</tr>
 				<tr>
 					<td width="1%" nowrap="nowrap">{$translate->_('message.header.bcc')|capitalize}: </td>
 					<td width="99%" align="left">
-						<input type="text" size="45" name="bcc" value="{$draft->params.bcc|escape}" onchange="$('#reply{$message->id}_part2 input[name=bcc]').val(this.value);" style="width:50%;border:1px solid rgb(180,180,180);padding:2px;">					
+						<input type="text" size="45" name="bcc" value="{$draft->params.bcc|escape}" onchange="$('#reply{$message->id}_part2 input[name=bcc]').val(this.value);" style="width:100%;border:1px solid rgb(180,180,180);padding:2px;">					
 					</td>
 				</tr>
 				<tr>
 					<td width="1%" nowrap="nowrap">{$translate->_('message.header.subject')|capitalize}: </td>
 					<td width="99%" align="left">
-						<input type="text" size="45" name="subject" value="{if !empty($draft)}{$draft->subject|escape}{else}{if $is_forward}Fwd: {/if}{$ticket->subject|escape}{/if}" onchange="$('#reply{$message->id}_part2 input[name=subject]').val(this.value);" style="width:50%;border:1px solid rgb(180,180,180);padding:2px;" class="required">					
+						<input type="text" size="45" name="subject" value="{if !empty($draft)}{$draft->subject|escape}{else}{if $is_forward}Fwd: {/if}{$ticket->subject|escape}{/if}" onchange="$('#reply{$message->id}_part2 input[name=subject]').val(this.value);" style="width:100%;border:1px solid rgb(180,180,180);padding:2px;" class="required">					
 					</td>
 				</tr>
 			</table>
@@ -92,15 +78,17 @@
 <input type="hidden" name="id" value="{$message->id}">
 <input type="hidden" name="ticket_id" value="{$ticket->id}">
 <input type="hidden" name="draft_id" value="{$draft->id}">
+{if $is_forward}<input type="hidden" name="is_forward" value="1">{/if}
 
 <!-- {* Copy these dynamically so a plugin dev doesn't need to conflict with the reply <form> *} -->
-{if $is_forward}<input type="hidden" name="to" value="{$draft->params.to|escape}">{/if}
+<input type="hidden" name="to" value="{$draft->params.to|escape}">
 <input type="hidden" name="cc" value="{$draft->params.cc|escape}">
 <input type="hidden" name="bcc" value="{$draft->params.bcc|escape}">
 <input type="hidden" name="subject" value="{if !empty($draft)}{$draft->subject|escape}{else}{if $is_forward}Fwd: {/if}{$ticket->subject|escape}{/if}">
 
 {if $is_forward}
 <textarea name="content" rows="20" cols="80" id="reply_{$message->id}" class="reply required" style="width:98%;border:1px solid rgb(180,180,180);padding:5px;">
+{if !empty($draft)}{$draft->body}{else}
 {if !empty($signature)}{$signature}{/if}
 
 {$translate->_('display.reply.forward.banner')}
@@ -110,6 +98,7 @@
 {if isset($headers.to)}{$translate->_('message.header.to')|capitalize}: {$headers.to|escape|cat:"\n"}{/if}
 
 {$message->getContent()|trim|escape}
+{/if}
 </textarea>
 {else}
 <textarea name="content" rows="20" cols="80" id="reply_{$message->id}" class="reply required" style="width:98%;border:1px solid rgb(180,180,180);padding:5px;">
@@ -119,7 +108,7 @@
 {$signature}{*Sig above, 2 lines necessary whitespace*}
 
 
-{/if}{assign var=reply_date value=$message->created_date|devblocks_date}{'display.reply.reply_banner'|devblocks_translate:$reply_date:$headers.from}
+{/if}{$quote_sender=$message->getSender()}{$quote_sender_personal=$quote_sender->getName()}{if !empty($quote_sender_personal)}{$reply_personal=$quote_sender_personal}{else}{$reply_personal=$quote_sender->email}{/if}{$reply_date=$message->created_date|devblocks_date:'D, d M Y'}{'display.reply.reply_banner'|devblocks_translate:$reply_date:$reply_personal}
 {$message->getContent()|trim|escape|indent:1:'> '}
 
 {if !empty($signature) && !$signature_pos}{$signature}{/if}{*Sig below*}

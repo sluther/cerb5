@@ -626,6 +626,9 @@ class ChTicketsPage extends CerberusPageExtension {
 		if(!empty($to))
 			$params['to'] = $to;
 			
+		if(empty($subject) && empty($content))
+			return json_encode(array());
+			
 		@$type = DevblocksPlatform::importGPC($_REQUEST['type'],'string','');
 		
 		switch($type) {
@@ -668,7 +671,7 @@ class ChTicketsPage extends CerberusPageExtension {
 			DAO_MailQueue::BODY => $content,
 			DAO_MailQueue::PARAMS_JSON => json_encode($params),
 			DAO_MailQueue::IS_QUEUED => 0,
-			DAO_MailQueue::PRIORITY => 0,
+			DAO_MailQueue::QUEUE_PRIORITY => 0,
 		);
 		
 		// Make sure the current worker is the draft author
@@ -703,10 +706,29 @@ class ChTicketsPage extends CerberusPageExtension {
 		@$active_worker = CerberusApplication::getActiveWorker();
 		
 		if(!empty($draft_id)
+			&& null != ($draft = DAO_MailQueue::get($draft_id))
 			&& ($active_worker->id == $draft->worker_id || $active_worker->is_superuser)) {
 			
 			DAO_MailQueue::delete($draft_id);
 		}
+	}
+	
+	function showDraftsPeekAction() {
+		@$id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
+		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string','');
+		
+		@$active_worker = CerberusApplication::getActiveWorker();
+		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$path = $this->_TPL_PATH;
+		$tpl->assign('path', $path);
+		$tpl->assign('view_id', $view_id);
+		
+		if(null != ($draft = DAO_MailQueue::get($id)))
+			if($active_worker->is_superuser || $draft->worker_id==$active_worker->id)
+				$tpl->assign('draft', $draft);
+		
+		$tpl->display('file:' . $path . 'mail/queue/peek.tpl');
 	}
 	
 	function showDraftsBulkPanelAction() {
@@ -856,7 +878,7 @@ class ChTicketsPage extends CerberusPageExtension {
 			// Make sure we have permission
 			if($active_worker->is_superuser || null != DAO_Snippet::getWhere(sprintf("%s = %d AND %s = %d",
 				DAO_Snippet::ID,
-				DAO_Snippet::$id,
+				$id,
 				DAO_Snippet::CREATED_BY,
 				$active_worker->id
 			))) {
@@ -1131,6 +1153,7 @@ class ChTicketsPage extends CerberusPageExtension {
         $query = trim($query);
         
         $visit = CerberusApplication::getVisit(); /* @var $visit CerberusVisit */
+		$active_worker = CerberusApplication::getActiveWorker();
 		$searchView = C4_AbstractViewLoader::getView(CerberusApplication::VIEW_SEARCH);
 		
 		if(null == $searchView)
@@ -1184,6 +1207,10 @@ class ChTicketsPage extends CerberusPageExtension {
                 break;
                 
         }
+        
+		// Force group ACL
+		if(!$active_worker->is_superuser)
+        	$params[SearchFields_Ticket::TICKET_TEAM_ID] = new DevblocksSearchCriteria(SearchFields_Ticket::TICKET_TEAM_ID, 'in', array_keys($active_worker->getMemberships()));
         
         $searchView->params = $params;
         $searchView->renderPage = 0;
@@ -1578,8 +1605,7 @@ class ChTicketsPage extends CerberusPageExtension {
 			if(empty($requester))
 				continue;
 			$host = empty($requester->host) ? 'localhost' : $requester->host;
-			$requester_addy = DAO_Address::lookupAddress($requester->mailbox . '@' . $host, true);
-			DAO_Ticket::createRequester($requester_addy->id, $ticket_id);
+			DAO_Ticket::createRequester($requester->mailbox . '@' . $host, $ticket_id);
 		}
 		
 		// Worker reply

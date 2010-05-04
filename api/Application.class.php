@@ -48,8 +48,8 @@
  * 		and Joe Geck.
  *   WEBGROUP MEDIA LLC. - Developers of Cerberus Helpdesk
  */
-define("APP_VERSION", '5.0.0-rc1');
-define("APP_BUILD", 2010042203);
+define("APP_VERSION", '5.0.0-rc2');
+define("APP_BUILD", 2010050101);
 define("APP_MAIL_PATH", APP_STORAGE_PATH . '/mail/');
 
 require_once(APP_PATH . "/api/DAO.class.php");
@@ -125,16 +125,6 @@ class CerberusApplication extends DevblocksApplication {
 	
 	static function checkRequirements() {
 		$errors = array();
-		
-		// License
-		// [TODO] 
-	    $license = CerberusLicense::getInstance();
-	    if(!empty($license)&&isset($license['expires'])&&intval(gmdate("Ymd99",$license['expires'])) < APP_BUILD) {
-	    	$errors[] = sprintf("Your Cerb5 license permits software updates through %s, and this update was released on %s.  Please renew your license or download a previous version.",
-	    		gmdate("F d, Y",$license['expires']),
-	    		gmdate("F d, Y",gmmktime(0,0,0,substr(APP_BUILD,4,2),substr(APP_BUILD,6,2),substr(APP_BUILD,0,4)))
-	    	);
-	    }
 		
 		// Privileges
 		
@@ -632,14 +622,18 @@ interface IContextToken {
 
 class CerberusContexts {
 	const CONTEXT_ADDRESS = 'cerberusweb.contexts.address';
+	const CONTEXT_ATTACHMENT = 'cerberusweb.contexts.attachment';
 	const CONTEXT_BUCKET = 'cerberusweb.contexts.bucket';
+	const CONTEXT_FEEDBACK = 'cerberusweb.contexts.feedback';
 	const CONTEXT_GROUP = 'cerberusweb.contexts.group';
+	const CONTEXT_KB_ARTICLE = 'cerberusweb.contexts.kb_article';
 	const CONTEXT_MESSAGE = 'cerberusweb.contexts.message';
 	const CONTEXT_NOTIFICATION= 'cerberusweb.contexts.notification';
 	const CONTEXT_OPPORTUNITY = 'cerberusweb.contexts.opportunity';
 	const CONTEXT_ORG = 'cerberusweb.contexts.org';
 	const CONTEXT_TASK = 'cerberusweb.contexts.task';
 	const CONTEXT_TICKET = 'cerberusweb.contexts.ticket';
+	const CONTEXT_TIMETRACKING = 'cerberusweb.contexts.timetracking';
 	const CONTEXT_WORKER = 'cerberusweb.contexts.worker';
 	
 	public static function getContext($context, $context_object, &$labels, &$values, $prefix=null, $nested=false) {
@@ -647,11 +641,20 @@ class CerberusContexts {
 			case 'cerberusweb.contexts.address':
 				self::_getAddressContext($context_object, $labels, $values, $prefix);
 				break;
+			case 'cerberusweb.contexts.attachment':
+				self::_getAttachmentContext($context_object, $labels, $values, $prefix);
+				break;
 			case 'cerberusweb.contexts.bucket':
 				self::_getBucketContext($context_object, $labels, $values, $prefix);
 				break;
+			case 'cerberusweb.contexts.feedback':
+				self::_getFeedbackContext($context_object, $labels, $values, $prefix);
+				break;
 			case 'cerberusweb.contexts.group':
 				self::_getGroupContext($context_object, $labels, $values, $prefix);
+				break;
+			case 'cerberusweb.contexts.kb_article':
+				self::_getKbArticleContext($context_object, $labels, $values, $prefix);
 				break;
 			case 'cerberusweb.contexts.message':
 				self::_getMessageContext($context_object, $labels, $values, $prefix);
@@ -670,6 +673,9 @@ class CerberusContexts {
 				break;
 			case 'cerberusweb.contexts.ticket':
 				self::_getTicketContext($context_object, $labels, $values, $prefix);
+				break;
+			case 'cerberusweb.contexts.timetracking':
+				self::_getTimeTrackingContext($context_object, $labels, $values, $prefix);
 				break;
 			case 'cerberusweb.contexts.worker':
 				self::_getWorkerContext($context_object, $labels, $values, $prefix);
@@ -805,6 +811,7 @@ class CerberusContexts {
 		
 		// Address token values
 		if(null != $address) {
+			$token_values['id'] = $address->id;
 			if(!empty($address->email))
 				$token_values['address'] = $address->email;
 			if(!empty($address->first_name))
@@ -853,6 +860,60 @@ class CerberusContexts {
 			$token_labels,
 			$token_values
 		);		
+		
+		return true;
+	}
+	
+	private static function _getAttachmentContext($attachment, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'Attachment:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		
+		// Polymorph
+		if(is_numeric($attachment)) {
+			list($results, $total) = DAO_Attachment::search(
+				array(
+					SearchFields_Attachment::ID => new DevblocksSearchCriteria(SearchFields_Attachment::ID,'=',$attachment),
+				),
+				1,
+				0,
+				null,
+				null,
+				false
+			);
+			
+			if(isset($results[$attachment]))
+				$attachment = $results[$attachment];
+			else
+				$attachment = null;
+		} elseif(is_array($attachment)) {
+			// It's what we want already.
+		} else {
+			$attachment = null;
+		}
+			
+		// Token labels
+		$token_labels = array(
+			'created|date' => $prefix.$translate->_('common.created'),
+			'id' => $prefix.$translate->_('common.id'),
+			'mime_type' => $prefix.$translate->_('attachment.mime_type'),
+			'name' => $prefix.$translate->_('attachment.display_name'),
+			'size' => $prefix.$translate->_('attachment.storage_size'),
+		);
+		
+		// Token values
+		$token_values = array();
+		
+		if(null != $attachment) {
+			$token_values['created'] = $attachment[SearchFields_Attachment::MESSAGE_CREATED_DATE];
+			$token_values['id'] = $attachment[SearchFields_Attachment::ID];
+			$token_values['message_id'] = $attachment[SearchFields_Attachment::MESSAGE_ID];
+			$token_values['mime_type'] = $attachment[SearchFields_Attachment::MIME_TYPE];
+			$token_values['name'] = $attachment[SearchFields_Attachment::DISPLAY_NAME];
+			$token_values['size'] = $attachment[SearchFields_Attachment::STORAGE_SIZE];
+			$token_values['ticket_id'] = $attachment[SearchFields_Attachment::TICKET_ID];
+		}
 		
 		return true;
 	}
@@ -944,6 +1005,125 @@ class CerberusContexts {
 		
 		return true;
 	}
+	
+	/**
+	 * 
+	 * @param $timeentry
+	 * @param $token_labels
+	 * @param $token_values
+	 * @param $prefix
+	 */
+	private static function _getTimeTrackingContext($timeentry, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'TimeEntry:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		$fields = DAO_CustomField::getBySource(ChCustomFieldSource_TimeEntry::ID);
+		
+		// Polymorph
+		if(is_numeric($timeentry) || $timeentry instanceof Model_TimeTrackingEntry) {
+			@$id = is_object($timeentry) ? $timeentry->id : intval($timeentry);
+			
+			list($results, $null) = DAO_TimeTrackingEntry::search(
+				array(),
+				array(
+					SearchFields_TimeTrackingEntry::ID => new DevblocksSearchCriteria(SearchFields_TimeTrackingEntry::ID,'=',$id),
+				),
+				1,
+				0,
+				null,
+				null,
+				false
+			);
+			
+			if(isset($results[$id]))
+				$timeentry = $results[$id];
+			else
+				$timeentry = null;
+			
+		} elseif(is_array($timeentry)) {
+			// It's what we want already.
+		} else {
+			$timeentry = null;
+		}
+			
+		// Token labels
+		$token_labels = array(
+			'created|date' => $prefix.$translate->_('timetracking_entry.log_date'),
+			'id' => $prefix.$translate->_('common.id'),
+			'mins' => $prefix.$translate->_('timetracking_entry.time_actual_mins'),
+			'notes' => $prefix.$translate->_('timetracking_entry.notes'),
+		);
+		
+		if(is_array($fields))
+		foreach($fields as $cf_id => $field) {
+			$token_labels['custom_'.$cf_id] = $prefix.$field->name;
+		}
+
+		// Token values
+		$token_values = array();
+		
+		if(null != $timeentry) {
+			$token_values['created'] = $timeentry[SearchFields_TimeTrackingEntry::LOG_DATE];
+			$token_values['id'] = $timeentry[SearchFields_TimeTrackingEntry::ID];
+			$token_values['mins'] = $timeentry[SearchFields_TimeTrackingEntry::TIME_ACTUAL_MINS];
+			$token_values['notes'] = $timeentry[SearchFields_TimeTrackingEntry::NOTES];
+			$token_values['custom'] = array();
+			
+			$field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_TimeEntry::ID, $timeentry[SearchFields_TimeTrackingEntry::ID]));
+			if(is_array($field_values) && !empty($field_values)) {
+				foreach($field_values as $cf_id => $cf_val) {
+					if(!isset($fields[$cf_id]))
+						continue;
+					
+					// The literal value
+					if(null != $address)
+						$token_values['custom'][$cf_id] = $cf_val;
+					
+					// Stringify
+					if(is_array($cf_val))
+						$cf_val = implode(', ', $cf_val);
+						
+					if(is_string($cf_val)) {
+						if(null != $address)
+							$token_values['custom_'.$cf_id] = $cf_val;
+					}
+				}
+			}
+		}
+		
+		// Email Org
+		@$org_id = $timeentry[SearchFields_TimeTrackingEntry::DEBIT_ORG_ID];
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_ORG, $org_id, $merge_token_labels, $merge_token_values, null, true);
+
+		self::_merge(
+			'org_',
+			'Org:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);		
+		
+		// Worker
+		@$worker_id = $timeentry[SearchFields_TimeTrackingEntry::WORKER_ID];
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_WORKER, $worker_id, $merge_token_labels, $merge_token_values, null, true);
+
+		self::_merge(
+			'worker_',
+			'Worker:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);		
+		
+		return true;
+	}	
 	
 	/**
 	 * 
@@ -1139,6 +1319,97 @@ class CerberusContexts {
 	
 	/**
 	 * 
+	 * @param $article
+	 * @param $token_labels
+	 * @param $token_values
+	 * @param $prefix
+	 */
+	private static function _getKbArticleContext($article, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'Article:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		//$fields = DAO_CustomField::getBySource(ChCustomFieldSource_Address::ID);
+		
+		// Polymorph
+		if(is_numeric($article)) {
+			$article = DAO_KbArticle::get($article);
+		} elseif($article instanceof Model_KbArticle) {
+			// It's what we want already.
+		} else {
+			$article = null;
+		}
+		/* @var $article Model_KbArticle */
+			
+		// Token labels
+		$token_labels = array(
+			'content' => $prefix.$translate->_('kb_article.content'),
+			'is_html' => $prefix.$translate->_('kb_article.format'),
+			'id' => $prefix.$translate->_('common.id'),
+			'title' => $prefix.$translate->_('kb_article.title'),
+			'updated|date' => $prefix.$translate->_('kb_article.updated'),
+			'views' => $prefix.$translate->_('kb_article.views'),
+		);
+		
+//		if(is_array($fields))
+//		foreach($fields as $cf_id => $field) {
+//			$token_labels['custom_'.$cf_id] = $prefix.$field->name;
+//		}
+
+		// Token values
+		$token_values = array();
+		
+		// Token values
+		if(null != $article) {
+			$token_values['content'] = $article->content;
+			$token_values['is_html'] = $article->format;
+			$token_values['id'] = $article->id;
+			$token_values['title'] = $article->title;
+			$token_values['updated'] = $article->updated;
+			$token_values['views'] = $article->views;
+			
+			// Categories
+			if(null != ($categories = $article->getCategories()) && is_array($categories)) {
+				$token_values['categories'] = array();
+				
+				foreach($categories as $category_id => $trail) {
+					foreach($trail as $step_id => $step) {
+						if(!isset($token_values['categories'][$category_id]))
+							$token_values['categories'][$category_id] = array();
+						$token_values['categories'][$category_id][$step_id] = $step->name;
+					}
+				}
+			}
+			
+			//$token_values['custom'] = array();
+			
+//			$field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_Address::ID, $address->id));
+//			if(is_array($field_values) && !empty($field_values)) {
+//				foreach($field_values as $cf_id => $cf_val) {
+//					if(!isset($fields[$cf_id]))
+//						continue;
+//					
+//					// The literal value
+//					if(null != $address)
+//						$token_values['custom'][$cf_id] = $cf_val;
+//					
+//					// Stringify
+//					if(is_array($cf_val))
+//						$cf_val = implode(', ', $cf_val);
+//						
+//					if(is_string($cf_val)) {
+//						if(null != $address)
+//							$token_values['custom_'.$cf_id] = $cf_val;
+//					}
+//				}
+//			}
+		}
+		
+		return true;
+	}	
+	
+	/**
+	 * 
 	 * @param mixed $message
 	 * @param array $token_labels
 	 * @param array $token_values
@@ -1162,6 +1433,9 @@ class CerberusContexts {
 		// Token labels
 		$token_labels = array(
 			'content' => $prefix.$translate->_('common.content'),
+			'created|date' => $prefix.$translate->_('common.created'),
+			'is_outgoing' => $prefix.$translate->_('message.is_outgoing'),
+			'storage_size' => $prefix.$translate->_('message.storage_size'),
 		);
 		
 		// Token values
@@ -1169,8 +1443,13 @@ class CerberusContexts {
 		
 		// Message token values
 		if($message) {
-			$token_values['id'] = $message->id;
 			$token_values['content'] = $message->getContent();
+			$token_values['created'] = $message->created_date;
+			$token_values['id'] = $message->id;
+			$token_values['is_outgoing'] = $message->is_outgoing;
+			$token_values['storage_size'] = $message->storage_size;
+			$token_values['ticket_id'] = $message->ticket_id;
+			$token_values['worker_id'] = $message->worker_id;
 		}
 
 		// Sender
@@ -1227,6 +1506,7 @@ class CerberusContexts {
 		
 		// Notification token values
 		if($notification) {
+			$token_values['id'] = $notification->id;
 			$token_values['content'] = $notification->content;
 			$token_values['created'] = $notification->created_date;
 			$token_values['id'] = $notification->id;
@@ -1298,6 +1578,7 @@ class CerberusContexts {
 		
 		// Org token values
 		if($org) {
+			$token_values['id'] = $org->id;
 			$token_values['name'] = $org->name;
 			$token_values['created'] = $org->created;
 			if(!empty($org->city))
@@ -1365,6 +1646,7 @@ class CerberusContexts {
 		
 		// Token labels
 		$token_labels = array(
+			'amount' => $prefix.$translate->_('crm.opportunity.amount'),
 			'created|date' => $prefix.$translate->_('crm.opportunity.created_date'),
 			'is_closed' => $prefix.$translate->_('crm.opportunity.is_closed'),
 			'is_won' => $prefix.$translate->_('crm.opportunity.is_won'),
@@ -1382,6 +1664,8 @@ class CerberusContexts {
 		
 		// Opp token values
 		if($opp) {
+			$token_values['id'] = $opp->id;
+			$token_values['amount'] = $opp->amount;
 			$token_values['created'] = $opp->created_date;
 			$token_values['is_closed'] = $opp->is_closed;
 			$token_values['is_won'] = $opp->is_won;
@@ -1667,28 +1951,142 @@ class CerberusContexts {
 		return true;
 	}	
 	
+	private static function _getFeedbackContext($feedback, &$token_labels, &$token_values, $prefix=null) {
+		if(is_null($prefix))
+			$prefix = 'Feedback:';
+		
+		$translate = DevblocksPlatform::getTranslationService();
+		$fields = DAO_CustomField::getBySource(ChCustomFieldSource_FeedbackEntry::ID);
+
+		// Polymorph
+		if(is_numeric($feedback)) {
+			$feedback = DAO_FeedbackEntry::get($feedback);
+		} elseif($feedback instanceof Model_FeedbackEntry) {
+			// It's what we want already.
+		} else {
+			$feedback = null;
+		}
+		
+		// Token labels
+		$token_labels = array(
+			'created|date' => $prefix.$translate->_('feedback_entry.log_date'),
+			'id' => $prefix.$translate->_('feedback_entry.id'),
+			'quote_mood' => $prefix.$translate->_('feedback_entry.quote_mood'),
+			'quote_text' => $prefix.$translate->_('feedback_entry.quote_text'),
+			'url' => $prefix.$translate->_('feedback_entry.source_url'),
+		);
+		
+		if(is_array($fields))
+		foreach($fields as $cf_id => $field) {
+			$token_labels['custom_'.$cf_id] = $prefix.$field->name;
+		}
+
+		// Token values
+		$token_values = array();
+		
+		if($feedback) {
+			$token_values['id'] = $feedback->id;
+			$token_values['created'] = $feedback->log_date;
+			$token_values['quote_text'] = $feedback->quote_text;
+			$token_values['url'] = $feedback->source_url;
+
+			$mood = $feedback->quote_mood;
+			$token_values['quote_mood_id'] = $mood;
+			$token_values['quote_mood'] = ($mood ? (2==$mood ? 'criticism' : 'praise' ) : 'neutral');
+			
+			$token_values['custom'] = array();
+			
+			$field_values = array_shift(DAO_CustomFieldValue::getValuesBySourceIds(ChCustomFieldSource_FeedbackEntry::ID, $feedback->id));
+			if(is_array($field_values) && !empty($field_values)) {
+				foreach($field_values as $cf_id => $cf_val) {
+					if(!isset($fields[$cf_id]))
+						continue;
+					
+					// The literal value
+					if(null != $org)
+						$token_values['custom'][$cf_id] = $cf_val;
+					
+					// Stringify
+					if(is_array($cf_val))
+						$cf_val = implode(', ', $cf_val);
+						
+					if(is_string($cf_val)) {
+						if(null != $org)
+							$token_values['custom_'.$cf_id] = $cf_val;
+					}
+				}
+			}
+		}
+
+		// Author
+		@$address_id = $feedback->quote_address_id;
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_ADDRESS, $address_id, $merge_token_labels, $merge_token_values, '', true);
+
+		self::_merge(
+			'author_',
+			'Author:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);			
+		
+		// Created by (Worker)
+		@$assignee_id = $feedback->worker_id;
+		$merge_token_labels = array();
+		$merge_token_values = array();
+		self::getContext(self::CONTEXT_WORKER, $assignee_id, $merge_token_labels, $merge_token_values, '', true);
+
+		self::_merge(
+			'worker_',
+			'Worker:',
+			$merge_token_labels,
+			$merge_token_values,
+			$token_labels,
+			$token_values
+		);			
+		
+		return true;
+	}	
+	
 };
 
 class CerberusLicense {
+	private static $instance = null;
+	private $data = array();
+
 	/**
-	 * @return array
+	 * Commercial open source is the most constructive business model for our project.
+	 * We trust you.
+	 */
+	private function __construct() {
+		/*																																																																																																																															*/try{$l=(null!=(@$data=json_decode(DevblocksPlatform::getPluginSetting('cerberusweb.core',CerberusSettings::LICENSE,''),true)))?$data:array();self::validate(base64_decode(@$l[base64_decode('ZGF0YQ==')]),@$l['company'],@$l['email'])?@$this->data=$l:@$this->data=array();}catch(Exception $e){@$this->data=array();}return;/*
+		 * We've spent many years working on this software.
+		 * Please be honest!
+		 * http://www.cerberusweb.com/buy
+		 */
+		$this->data = (null != ($data = json_decode(DevblocksPlatform::getPluginSetting('devblocks.core','license_info',array()),true)))?$data:array();
+	}
+	
+	/**																																																																																																																																*/public function __get($property) {switch($property){case 'w':return(max(1,@intval($this->seats)));break;default:return(isset($this->data[$property]))?$this->data[$property]:null;break;}}/*
+	 * @return CerberusLicense
 	 */
 	public static function getInstance() {
-		// [TODO] Move 'data' to another setting
-		$settings = DevblocksPlatform::getPluginSettingsService();
-		@$license = json_decode($settings->get('cerberusweb.core',CerberusSettings::LICENSE,array()),true);																																																																																																						  	try{$l=$license;return self::validate(base64_decode(@$l[base64_decode('ZGF0YQ==')]),@$l['company'],@$l['email']);}catch(Exception $e){}
-		if(empty($license) || !is_array($license))
-			$license = array();
-		return $license;
+		if(is_null(self::$instance)) {
+			self::$instance = new CerberusLicense();
+		}
+		return self::$instance;
 	}
-
+	
 	/*
 	 * Please purchase a legitimate license and help support the project.
-	 * http://www.cerberusweb.com/
+	 * http://www.cerberusweb.com/buy
 	 */
 	public static function validate($key, $company, $email) {
-		/*  																																																																																																																														*/try{foreach(array('L0tleTogKC4qKS8='=>'s','L0NyZWF0ZWQ6ICguKikv'=>'c','L1VwZGF0ZWQ6ICguKikv'=>'u','L0V4cGlyZXM6ICguKikv'=>'e','L1dvcmtlcnM6ICguKikv'=>'w') as $k=>$v)@preg_match(base64_decode($k),$key,$matches)?@$$v=trim($matches[1]):null;$r=array();@$w=intval($w);@$cp=base64_decode('Y29tcGFueQ==');@$em=base64_decode('ZW1haWw=');@$cd=preg_replace('/[^A-Z0-9]/','',$s);@$l=explode('-',$e);@$e=gmmktime(0,0,0,$l[1],$l[2],$l[0]);@$l=explode('-',$c);@$c=gmmktime(0,0,0,$l[1],$l[2],$l[0]);@$l=explode('-',$u);@$u=gmmktime(0,0,0,$l[1],$l[2],$l[0]);@$h=str_split(strtoupper(sha1(sha1('cerb5').sha1($$cp).sha1($$em).sha1(intval($w)).sha1(gmdate('Y-m-d',$c)).sha1(gmdate('Y-m-d',$e)))),1);if(0==@strcasecmp(sprintf("%02X",strlen($$cp)+intval($w)),substr($cd,3,2))&&@intval(hexdec(substr($cd,5,1))==@intval(bindec(sprintf("%d%d%d%d",(182<=gmdate('z',$e))?1:0,(5==gmdate('w',$e))?1:0,('th'==gmdate('S',$e))?1:0,(1==gmdate('w',$e))?1:0))))&&0==@strcasecmp($h[hexdec(substr($cd,1,2))-@hexdec(substr($cd,0,1))],substr($cd,0,1)))@$r=array(base64_decode('a2V5')=>$s,base64_decode('Y3JlYXRlZA==')=>$c,base64_decode('dXBkYXRlZA==')=>$u,base64_decode('ZXhwaXJlcw==')=>$e,@$cp=>$$cp,@$em=>$$em,base64_decode('d29ya2Vycw==')=>intval($w),base64_decode('ZGF0YQ==')=>base64_encode($key));return $r;}catch(Exception $e){return array();}/*
-		 * [TODO] This should probably do a little more checking
+		/*  																																																																																																																														*/try{foreach(array('L0tleTogKC4qKS8='=>'s','L0NyZWF0ZWQ6ICguKikv'=>'c','L1VwZGF0ZWQ6ICguKikv'=>'u','L1VwZ3JhZGVzOiAoLiopLw=='=>'e','L1NlYXRzOiAoLiopLw=='=>'w') as $k=>$v)@preg_match(base64_decode($k),$key,$matches)?@$$v=trim($matches[1]):null;$r=array();@$w=intval($w);@$cp=base64_decode('Y29tcGFueQ==');@$em=base64_decode('ZW1haWw=');@$cd=preg_replace('/[^A-Z0-9]/','',$s);@$l=explode('-',$e);@$e=gmmktime(0,0,0,$l[1],$l[2],$l[0]);@$l=explode('-',$c);@$c=gmmktime(0,0,0,$l[1],$l[2],$l[0]);@$l=explode('-',$u);@$u=gmmktime(0,0,0,$l[1],$l[2],$l[0]);@$h=str_split(strtoupper(sha1(sha1('cerb5').sha1($$cp).sha1($$em).sha1(intval($w)).sha1(gmdate('Y-m-d',$c)).sha1(gmdate('Y-m-d',$e)))),1);if(0==@strcasecmp(sprintf("%02X",strlen($$cp)+intval($w)),substr($cd,3,2))&&@intval(hexdec(substr($cd,5,1))==@intval(bindec(sprintf("%d%d%d%d",(182<=gmdate('z',$e))?1:0,(5==gmdate('w',$e))?1:0,('th'==gmdate('S',$e))?1:0,(1==gmdate('w',$e))?1:0))))&&0==@strcasecmp($h[hexdec(substr($cd,1,2))-@hexdec(substr($cd,0,1))],substr($cd,0,1)))@$r=array(base64_decode('a2V5')=>$s,base64_decode('Y3JlYXRlZA==')=>$c,base64_decode('dXBkYXRlZA==')=>$u,base64_decode('dXBncmFkZXM=')=>$e,@$cp=>$$cp,@$em=>$$em,base64_decode('c2VhdHM=')=>intval($w),base64_decode('ZGF0YQ==')=>base64_encode($key));return $r;}catch(Exception $e){return array();}/*
+		 * Simple, huh?
 		 */
 		$lines = explode("\n", $key);
 		
@@ -1703,8 +2101,8 @@ class CerberusLicense {
 				'key'     => (list($k,$v)=explode(":",$lines[1]))?trim($v):null,
 				'created' => (list($k,$v)=explode(":",$lines[2]))?trim($v):null,
 				'updated' => (list($k,$v)=explode(":",$lines[3]))?trim($v):null,
-				'expires' => (list($k,$v)=explode(":",$lines[4]))?trim($v):null,
-				'workers' => (list($k,$v)=explode(":",$lines[5]))?trim($v):null
+				'upgrades' => (list($k,$v)=explode(":",$lines[4]))?trim($v):null,
+				'seats' => (list($k,$v)=explode(":",$lines[5]))?trim($v):null
 			)
 			: array();
 	}
@@ -1762,6 +2160,8 @@ class C4_DevblocksExtensionDelegate implements DevblocksExtensionDelegate {
 	
 	static function shouldLoadExtension(DevblocksExtensionManifest $extension_manifest) {
 		// Always allow core
+		if("devblocks.core" == $extension_manifest->plugin_id)
+			return true;
 		if("cerberusweb.core" == $extension_manifest->plugin_id)
 			return true;
 			

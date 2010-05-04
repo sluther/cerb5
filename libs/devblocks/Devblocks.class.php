@@ -475,7 +475,7 @@ class DevblocksPlatform extends DevblocksEngine {
 			
 			// Re-read manifests
 			DevblocksPlatform::readPlugins();
-				
+			
 			if(self::_needsToPatch()) {
 				return false; // the update script will handle new caches
 			} else {
@@ -495,6 +495,10 @@ class DevblocksPlatform extends DevblocksEngine {
 	 */
 	static private function _needsToPatch() {
 		 $plugins = DevblocksPlatform::getPluginRegistry();
+		 
+		 // First install or upgrade
+		 if(empty($plugins))
+		 	return true;
 
 		 foreach($plugins as $plugin) { /* @var $plugin DevblocksPluginManifest */
 		 	if($plugin->enabled) {
@@ -770,13 +774,13 @@ class DevblocksPlatform extends DevblocksEngine {
 		    @$plugin->dir = $row['dir'];
 
 		    // JSON decode
-		    if(null != ($manifest_cache_json = $row['manifest_cache_json'])) {
+		    if(isset($row['manifest_cache_json'])
+		    	&& null != ($manifest_cache_json = $row['manifest_cache_json'])) {
 		    	$plugin->manifest_cache = json_decode($manifest_cache_json, true);
 		    }
-		    
-		    if(file_exists(APP_PATH . DIRECTORY_SEPARATOR . $plugin->dir . DIRECTORY_SEPARATOR . 'plugin.xml')) {
-		        $plugins[$plugin->id] = $plugin;
-		    }
+
+		    if(file_exists(APP_PATH . DIRECTORY_SEPARATOR . $plugin->dir . DIRECTORY_SEPARATOR . 'plugin.xml'))
+	        	$plugins[$plugin->id] = $plugin;
 		}
 
 		$sql = sprintf("SELECT p.id, p.name, p.params, p.plugin_id ".
@@ -991,7 +995,7 @@ class DevblocksPlatform extends DevblocksEngine {
 	static function getSessionService() {
 	    return _DevblocksSessionManager::getInstance();
 	}
-
+	
 	/**
 	 * @return _DevblocksSearchEngineMysqlFulltext
 	 */
@@ -1917,6 +1921,22 @@ class _DevblocksSessionManager {
 		return $instance;
 	}
 	
+	// See: http://php.net/manual/en/function.session-decode.php
+	function decodeSession($data) {
+	    $vars=preg_split('/([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff^|]*)\|/',
+	              $data,-1,PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+	    
+	    $scope = array();
+	    
+	    while(!empty($vars)) {
+	    	@$key = array_shift($vars);
+	    	@$value = unserialize(array_shift($vars));
+	    	$scope[$key] = $value;
+	    }
+	    
+	    return $scope;		
+	}
+	
 	/**
 	 * Returns the current session or NULL if no session exists.
 	 * 
@@ -1934,14 +1954,22 @@ class _DevblocksSessionManager {
 		$_SESSION['db_visit'] = $this->visit;
 	}
 	
+	function getAll() {
+		return _DevblocksSessionDatabaseDriver::getAll();
+	}
+	
 	/**
-	 * Kills the current session.
+	 * Kills the specified or current session.
 	 *
 	 */
-	function clear() {
-		$this->visit = null;
-		unset($_SESSION['db_visit']);
-		session_destroy();
+	function clear($key=null) {
+		if(is_null($key)) {
+			$this->visit = null;
+			unset($_SESSION['db_visit']);
+			session_destroy();
+		} else {
+			_DevblocksSessionDatabaseDriver::destroy($key);
+		}
 	}
 	
 	function clearAll() {
@@ -2009,6 +2037,11 @@ class _DevblocksSessionDatabaseDriver {
 		$db = DevblocksPlatform::getDatabaseService();
 		$db->Execute(sprintf("DELETE FROM devblocks_session WHERE updated + %d < %d", $maxlifetime, time()));
 		return true;
+	}
+	
+	static function getAll() {
+		$db = DevblocksPlatform::getDatabaseService();
+		return $db->GetArray("SELECT session_key, created, updated, session_data FROM devblocks_session");
 	}
 	
 	static function destroyAll() {
