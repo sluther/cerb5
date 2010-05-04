@@ -27,24 +27,6 @@ abstract class Extension_TimeTrackingSource extends DevblocksExtension {
 	}
 };
 
-
-if(class_exists('Extension_iPhoneActivityPage')):
-	class ChTimeTrackingiPhoneActivityPage extends Extension_iPhoneActivityPage {
-		private $_TPL_PATH = '';
-		
-		public function __construct($manifest) {
-			$this->DevblocksExtension($manifest);
-			$this->_TPL_PATH = dirname(dirname(__FILE__)) . '/templates/';
-		}
-		
-		function render() {
-			$tpl = DevblocksPlatform::getTemplateService();
-			
-			$tpl->display('file:' . $this->_TPL_PATH . 'activity/timetracking.tpl');
-		}
-	};
-endif;
-
 if (class_exists('Extension_TimeTrackingSource',true)):
 class ChTimeTrackingTicketSource extends Extension_TimeTrackingSource {
 	const ID = 'timetracking.source.ticket';

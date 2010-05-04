@@ -197,62 +197,6 @@
 			<params>
 				<param key="uri" value="opps" />
 			</params>
-		</extension>		
-		
-        <!-- iPhone Pages -->
-        
-        <extension point="cerberusweb.iphone.activity.page">
-			<id>opportunities.iphone.activity.page</id>
-			<name>Opportunities iPhone Activity Page</name>
-			<class>
-				<file>api/App.php</file>
-				<name>ChOpportunitiesiPhoneActivityPage</name>
-			</class>
-			<params>
-				<param key="uri" value="opportunities" />
-				<param key="title" value="Opportunities" />
-			</params>
-		</extension>
-        
-        <!-- iPhone Opportunity Display Tabs -->
-        
-        <extension point="cerberusweb.iphone.opportunity.display.tab">
-			<id>notes.iphone.opportunity.display</id>
-			<name>Other Tab</name>
-			<class>
-				<file>api/App.php</file>
-				<name>ChNotesiPhoneOpportunityDisplayTab</name>
-			</class>
-			<params>
-				<param key="uri" value="notes" />
-				<param key="title" value="Notes" />
-			</params>
-		</extension>
-        
-        <extension point="cerberusweb.iphone.opportunity.display.tab">
-			<id>properties.iphone.opportunity.display</id>
-			<name>Other Tab</name>
-			<class>
-				<file>api/App.php</file>
-				<name>ChPropertiesiPhoneOpportunityDisplayTab</name>
-			</class>
-			<params>
-				<param key="uri" value="properties" />
-				<param key="title" value="Properties" />
-			</params>
-		</extension>
-
-        <extension point="cerberusweb.iphone.opportunity.display.tab">
-			<id>other.iphone.opportunity.display</id>
-			<name>Other Tab</name>
-			<class>
-				<file>api/App.php</file>
-				<name>ChOtheriPhoneOpportunityDisplayTab</name>
-			</class>
-			<params>
-				<param key="uri" value="other" />
-				<param key="title" value="Other" />
-			</params>
 		</extension>
         
 	</extensions>

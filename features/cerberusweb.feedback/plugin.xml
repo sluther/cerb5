@@ -124,21 +124,6 @@
 				<param key="uri" value="feedback" />
 			</params>
 		</extension>		
-		 
-        <!-- iPhone Pages -->
-        
-        <extension point="cerberusweb.iphone.activity.page">
-			<id>feedback.iphone.activity.page</id>
-			<name>Feedback</name>
-			<class>
-				<file>api/App.php</file>
-				<name>ChFeedbackiPhoneActivityPage</name>
-			</class>
-			<params>
-				<param key="uri" value="feedback" />
-				<param key="title" value="Feedback" />
-			</params>
-		</extension>
-         
+		          
 	</extensions>
 </plugin>
