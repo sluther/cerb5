@@ -47,14 +47,28 @@ class ChKbPage extends CerberusPageExtension {
 		@$action = array_shift($stack);
 		
 		switch($action) {
-			case 'category':
 			case 'article':
+				@$article_id = array_shift($stack);
+				
+				$categories = DAO_KbCategory::getAll();
+				$tpl->assign('categories', $categories);
+				
+				if(null != ($article = DAO_KbArticle::get($article_id))) {
+					$tpl->assign('article', $article);
+					
+					$breadcrumbs = $article->getCategories();
+					$tpl->assign('breadcrumbs', $breadcrumbs);
+				}
+				
+				$tpl->display('file:' . $this->_TPL_PATH . 'kb/display/index.tpl');
+				break;
+				
+			case 'category':
 			default:
 				$tab_manifests = DevblocksPlatform::getExtensions('cerberusweb.knowledgebase.tab', false);
 				uasort($tab_manifests, create_function('$a, $b', "return strcasecmp(\$a->name,\$b->name);\n"));
 				$tpl->assign('tab_manifests', $tab_manifests);
 				
-				//@$tab_selected = array_shift($stack);
 				if(empty($tab_selected)) $tab_selected = '';
 				$tpl->assign('tab_selected', $action);
 				
@@ -291,7 +305,12 @@ class ChKbAjaxController extends DevblocksControllerExtension {
 		$tpl->assign('path', $this->_TPL_PATH);
 
 		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string','');
-		$tpl->assign('view_id', $view_id);
+		if(!empty($view_id))
+			$tpl->assign('view_id', $view_id);
+			
+		@$return_uri = DevblocksPlatform::importGPC($_REQUEST['return_uri'],'string','');
+		if(!empty($return_uri))
+			$tpl->assign('return_uri', $return_uri);
 		
 		if(!empty($id)) {
 			$article = DAO_KbArticle::get($id);
@@ -373,7 +392,12 @@ class ChKbAjaxController extends DevblocksControllerExtension {
 		$tpl->assign('root_id', $root_id);
 		
 		@$view_id = DevblocksPlatform::importGPC($_REQUEST['view_id'],'string','');
-		$tpl->assign('view_id', $view_id);
+		if(!empty($view_id))
+			$tpl->assign('view_id', $view_id);
+			
+		@$return_uri = DevblocksPlatform::importGPC($_REQUEST['return_uri'],'string','');
+		if(!empty($return_uri))
+			$tpl->assign('return_uri', $return_uri);
 		
 		if(!empty($id)) {
 			$article = DAO_KbArticle::get($id);
@@ -403,7 +427,7 @@ class ChKbAjaxController extends DevblocksControllerExtension {
 		@$do_delete = DevblocksPlatform::importGPC($_REQUEST['do_delete'],'integer',0);
 		@$title = DevblocksPlatform::importGPC($_REQUEST['title'],'string');
 		@$category_ids = DevblocksPlatform::importGPC($_REQUEST['category_ids'],'array',array());
-		@$content_raw = DevblocksPlatform::importGPC($_REQUEST['content_raw'],'string');
+		@$content = DevblocksPlatform::importGPC($_REQUEST['content'],'string');
 		@$format = DevblocksPlatform::importGPC($_REQUEST['format'],'integer',0);
 		
 		if(!empty($id) && !empty($do_delete)) { // Delete
@@ -417,22 +441,11 @@ class ChKbAjaxController extends DevblocksControllerExtension {
 			if(empty($title))
 				$title = '(' . $translate->_('kb_article.title') . ')';
 			
-			switch($format) {
-				default:
-				case 0: // plaintext
-					$content_html = $content_raw;
-					break;
-				case 1: // HTML
-					$content_html = $content_raw;
-					break;
-			}
-				
 			if(empty($id)) { // create
 				$fields = array(
 					DAO_KbArticle::TITLE => $title,
 					DAO_KbArticle::FORMAT => $format,
-					DAO_KbArticle::CONTENT_RAW => $content_raw,
-					DAO_KbArticle::CONTENT => $content_html,
+					DAO_KbArticle::CONTENT => $content,
 					DAO_KbArticle::UPDATED => time(),
 				);
 				$id = DAO_KbArticle::create($fields);
@@ -441,8 +454,7 @@ class ChKbAjaxController extends DevblocksControllerExtension {
 				$fields = array(
 					DAO_KbArticle::TITLE => $title,
 					DAO_KbArticle::FORMAT => $format,
-					DAO_KbArticle::CONTENT_RAW => $content_raw,
-					DAO_KbArticle::CONTENT => $content_html,
+					DAO_KbArticle::CONTENT => $content,
 					DAO_KbArticle::UPDATED => time(),
 				);
 				DAO_KbArticle::update($id, $fields);
@@ -451,6 +463,9 @@ class ChKbAjaxController extends DevblocksControllerExtension {
 			
 			DAO_KbArticle::setCategories($id, $category_ids, true);
 		}
+		
+		// JSON
+		echo json_encode(array('id'=>$id));
 	}
 	
 	function doArticleQuickSearchAction() {
@@ -697,7 +712,19 @@ class ChKbAjaxController extends DevblocksControllerExtension {
 		$view->render();
 		return;
 	}
+	
+	function getArticleContentAction() {
+		@$id = DevblocksPlatform::importGPC($_REQUEST['id'],'integer',0);
+
+		// [TODO] ACL
+		// [TODO] Fetch article content from storage
 		
+		if(null == ($article = DAO_KbArticle::get($id)))
+			return;
+
+		echo $article->getContent();
+	}
+	
 };
 
 class DAO_KbArticle extends DevblocksORMHelper {
@@ -707,14 +734,13 @@ class DAO_KbArticle extends DevblocksORMHelper {
 	const VIEWS = 'views';
 	const FORMAT = 'format';
 	const CONTENT = 'content';
-	const CONTENT_RAW = 'content_raw';
 	
 	static function create($fields) {
 		$db = DevblocksPlatform::getDatabaseService();
 		$id = $db->GenID('kb_seq');
 		
-		$sql = sprintf("INSERT INTO kb_article (id,title,views,updated,format,content,content_raw) ".
-			"VALUES (%d,'',0,%d,0,'','')",
+		$sql = sprintf("INSERT INTO kb_article (id,title,views,updated,format,content) ".
+			"VALUES (%d,'',0,%d,0,'')",
 			$id,
 			time()
 		);
@@ -742,7 +768,7 @@ class DAO_KbArticle extends DevblocksORMHelper {
 		
 		list($where_sql, $sort_sql, $limit_sql) = self::_getWhereSQL($where, $sortBy, $sortAsc, $limit);
 		
-		$sql = "SELECT id, title, views, updated, format, content, content_raw ".
+		$sql = "SELECT id, title, views, updated, format, content ".
 			"FROM kb_article ".
 			$where_sql.
 			$sort_sql.
@@ -769,7 +795,6 @@ class DAO_KbArticle extends DevblocksORMHelper {
 			$object->views = $row['views'];
 			$object->format = $row['format'];
 			$object->content = $row['content'];
-			$object->content_raw = $row['content_raw'];
 			$objects[$object->id] = $object;
 		}
 		
@@ -1500,13 +1525,34 @@ class View_KbArticle extends C4_AbstractView {
 };
 
 class Model_KbArticle {
+	const FORMAT_PLAINTEXT = 0;
+	const FORMAT_HTML = 1;
+	const FORMAT_MARKDOWN = 2;
+	
 	public $id = 0;
 	public $title = '';
 	public $views = 0;
 	public $updated = 0;
 	public $format = 0;
 	public $content = '';
-	public $content_raw = '';
+	
+	function getContent() {
+		$html = '';
+		
+		switch($this->format) {
+			case self::FORMAT_HTML:
+				$html = $this->content;
+				break;
+			case self::FORMAT_PLAINTEXT:
+				$html = nl2br(htmlentities($this->content, ENT_QUOTES, LANG_CHARSET_CODE));
+				break;
+			case self::FORMAT_MARKDOWN:
+				$html = DevblocksPlatform::parseMarkdown($this->content);
+				break;
+		}
+		
+		return $html;
+	}
 	
 	// [TODO] Reuse this!
 	function getCategories() {
