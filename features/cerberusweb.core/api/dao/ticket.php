@@ -437,6 +437,52 @@ class DAO_Ticket extends C4_ORMHelper {
 		return $addresses;
 	}
 	
+	static function getTicketsByRequester($address_id) {
+		$db = DevblocksPlatform::getDatabaseService();
+		$tickets = array();
+		
+		$sql = sprintf("SELECT t.id , t.mask, t.subject, t.is_waiting, t.is_closed, t.is_deleted, t.team_id, t.category_id, t.first_message_id, t.last_message_id, ".
+			"t.first_wrote_address_id, t.last_wrote_address_id, t.created_date, t.updated_date, t.due_date, t.unlock_date, t.spam_training, ". 
+			"t.spam_score, t.interesting_words, t.last_worker_id, t.next_worker_id ".
+			"FROM ticket t ".
+			"INNER JOIN requester r ON (r.address_id = %d AND t.id=r.ticket_id)" .
+			"ORDER BY t.updated_date DESC", 
+			$address_id)
+		;
+		
+		$rs = $db->Execute($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg());
+		 
+		while($row = mysql_fetch_assoc($rs)) {
+			$ticket = new Model_Ticket();
+			$ticket->id = intval($row['id']);
+			$ticket->mask = $row['mask'];
+			$ticket->subject = $row['subject'];
+			$ticket->first_message_id = intval($row['first_message_id']);
+			$ticket->last_message_id = intval($row['last_message_id']);
+			$ticket->team_id = intval($row['team_id']);
+			$ticket->category_id = intval($row['category_id']);
+			$ticket->is_waiting = intval($row['is_waiting']);
+			$ticket->is_closed = intval($row['is_closed']);
+			$ticket->is_deleted = intval($row['is_deleted']);
+			$ticket->last_wrote_address_id = intval($row['last_wrote_address_id']);
+			$ticket->first_wrote_address_id = intval($row['first_wrote_address_id']);
+			$ticket->created_date = intval($row['created_date']);
+			$ticket->updated_date = intval($row['updated_date']);
+			$ticket->due_date = intval($row['due_date']);
+			$ticket->unlock_date = intval($row['unlock_date']);
+			$ticket->spam_score = floatval($row['spam_score']);
+			$ticket->spam_training = $row['spam_training'];
+			$ticket->interesting_words = $row['interesting_words'];
+			$ticket->last_worker_id = intval($row['last_worker_id']);
+			$ticket->next_worker_id = intval($row['next_worker_id']);
+			$tickets[$ticket->id] = $ticket;
+		}
+		
+		mysql_free_result($rs);
+
+		return $tickets;
+	}
+	
 	static function isTicketRequester($email, $ticket_id) {
 		$db = DevblocksPlatform::getDatabaseService();
 		

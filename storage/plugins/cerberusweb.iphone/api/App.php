@@ -885,7 +885,7 @@ if(class_exists('DAO_CrmOpportunity', true)):
 			$tpl->assign('tab_manifests', $tab_manifests);
 			
 //			var_dump($tab_manifests);
-			var_dump($sub_tab);
+//			var_dump($sub_tab);
 			$tpl->assign('opp_id', $id);
 						
 			foreach($tab_manifests as $tab_mft)
@@ -950,11 +950,14 @@ if(class_exists('DAO_CrmOpportunity', true)):
 			$sub_tab = array_shift($path); // tasks
 			
 			$address = $tpl->getVariable('address')->value;
-			var_dump(DAO_Address::getByEmail($address->email));
-//			$criteria = new DevblocksSearchCriteria(SearchFields_Ticket::REQUESTER_ADDRESS, '=', $address->email);
-			var_dump($criteria);
+			$address = DAO_Address::getByEmail($address->email);
+//			var_dump($address);
 			
-			$tpl->display('file:' . $this->_TPL_PATH . 'display/sub_tabs/tasks.tpl');
+			$tickets = DAO_Ticket::getTicketsByRequester($address->id);
+//			$criteria = new DevblocksSearchCriteria(SearchFields_Ticket::REQUESTER_ADDRESS, '=', $address->email);
+			$tpl->assign('tickets', $tickets);
+			
+			$tpl->display('file:' . $this->_TPL_PATH . 'display/sub_tabs/mailhistory.tpl');
 		}
 	};
 	
