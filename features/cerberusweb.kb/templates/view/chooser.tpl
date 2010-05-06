@@ -1,32 +1,19 @@
 {assign var=results value=$view->getData()}
 {assign var=total value=$results[1]}
 {assign var=data value=$results[0]}
-<table cellpadding="0" cellspacing="0" border="0" class="worklist" width="100%">
-	<tr>
-		<td nowrap="nowrap"><span class="title">{$view->name}</span></td>
-		<td nowrap="nowrap" align="right">
-			 {*<a href="javascript:;" onclick="$('#btnExplore{$view->id}').click();">explore</a>*}
-			 <a href="javascript:;" onclick="genericAjaxGet('customize{$view->id}','c=internal&a=viewCustomize&id={$view->id}');toggleDiv('customize{$view->id}','block');">{$translate->_('common.customize')|lower}</a>
-			 | <a href="javascript:;" onclick="genericAjaxGet('view{$view->id}','c=internal&a=viewRefresh&id={$view->id}');">{$translate->_('common.refresh')|lower}</a>
-		</td>
-	</tr>
-</table>
 
-<div id="{$view->id}_tips" class="block" style="display:none;margin:10px;padding:5px;">Loading...</div>
-<form id="customize{$view->id}" name="customize{$view->id}" action="#" onsubmit="return false;" style="display:none;"></form>
-<form id="viewForm{$view->id}" name="viewForm{$view->id}" action="{devblocks_url}{/devblocks_url}" method="post">
+<form id="viewForm{$view->id}" name="viewForm{$view->id}" action="{devblocks_url}{/devblocks_url}" method="post" onsubmit="return false;">
 <input type="hidden" name="view_id" value="{$view->id}">
-<input type="hidden" name="c" value="tickets">
+<input type="hidden" name="c" value="kb">
 <input type="hidden" name="a" value="">
 <table cellpadding="1" cellspacing="0" border="0" width="100%" class="worklistBody">
 
 	{* Column Headers *}
 	<tr>
-		<th style="text-align:center"><input type="checkbox" onclick="checkAll('view{$view->id}',this.checked);"></th>
 		{foreach from=$view->view_columns item=header name=headers}
 			{* start table header, insert column title and link *}
-			<th nowrap="nowrap">
-			<a href="javascript:;" onclick="genericAjaxGet('view{$view->id}','c=internal&a=viewSortBy&id={$view->id}&sortBy={$header}');">{$view_fields.$header->db_label|capitalize}</a>
+			<th nowrap="nowrap" style="background-color:rgb(232,242,254);border-color:rgb(121,183,231);">
+			<a href="javascript:;" style="color:rgb(74,110,158);" onclick="genericAjaxGet('view{$view->id}','c=internal&a=viewSortBy&id={$view->id}&sortBy={$header}');">{$view_fields.$header->db_label|capitalize}</a>
 			
 			{* add arrow if sorting by this column, finish table header tag *}
 			{if $header==$view->renderSortBy}
@@ -48,51 +35,52 @@
 	{else}
 		{assign var=tableRowClass value="odd"}
 	{/if}
-	<tbody onmouseover="$(this).find('tr').addClass('hover');" onmouseout="$(this).find('tr').removeClass('hover');" onclick="if(getEventTarget(event)=='TD') { var $chk=$(this).find('input:checkbox:first');if(!$chk) return;$chk.attr('checked', !$chk.is(':checked')); } ">
+	<tbody onmouseover="$(this).find('tr').addClass('hover');" onmouseout="$(this).find('tr').removeClass('hover');">
 		<tr class="{$tableRowClass}">
-		<td align="center"><input type="checkbox" name="row_id[]" value="{$result.s_id}"></td>
+		{*<td align="center"><input type="checkbox" name="row_id[]" value="{$result.kb_id}"></td>*}
 		{foreach from=$view->view_columns item=column name=columns}
 			{if substr($column,0,3)=="cf_"}
 				{include file="file:$core_tpl/internal/custom_fields/view/cell_renderer.tpl"}
-			{elseif $column=="s_title"}
+			{elseif $column=="kb_id"}
+			<td>{$result.kb_id}&nbsp;</td>
+			{elseif $column=="kb_title"}
 			<td>
-				<a href="javascript:;" onclick="genericAjaxPanel('c=tickets&a=showSnippetsPeek&view_id={$view->id}&id={$result.s_id}', null, false, '550');" class="subject">{if empty($result.$column)}(no title){else}{$result.$column}{/if}</a>
+				<span class="cerb-sprite sprite-document"></span>
+				<a href="javascript:;" onclick="genericAjaxPanel('c=kb.ajax&a=showArticlePeekPanel&id={$result.kb_id}&view_id={$view->id}',null,false,'700');" class="subject">{if !empty($result.kb_title)}{$result.kb_title|escape}{else}(no title){/if}</a>
 			</td>
-			{elseif $column=="s_last_updated"}
+			{elseif $column=="kb_updated"}
+			<td><abbr title="{$result.kb_updated|devblocks_date}">{$result.kb_updated|devblocks_prettytime}</abbr>&nbsp;</td>
+			{elseif $column=="kb_format"}
 			<td>
-				<abbr title="{$result.$column|devblocks_date}">{$result.$column|devblocks_prettytime}</abbr>
+				{if 0==$result.$column}
+					Plaintext
+				{elseif 1==$result.$column}
+					HTML
+				{elseif 2==$result.$column}
+					Markdown
+				{/if}
+				&nbsp;
 			</td>
-			{elseif $column=="s_last_updated_by" || $column=="s_created_by"}
+			{elseif $column=="katc_top_category_id"}
 			<td>
-				{if empty($workers)}
-					{$workers = DAO_Worker::getAll()}
+				{if !empty($result.$column)}
+					{assign var=topic_id value=$result.$column}
+					{if isset($categories.$topic_id)}
+						{$categories.$topic_id->name}
+					{/if}
 				{/if}
-				{$worker_id = $result.$column}
-				{if $workers.$worker_id}
-					{$workers.{$worker_id}->getName()}
-				{/if}
+				&nbsp;
 			</td>
 			{else}
 			<td>{$result.$column}&nbsp;</td>
 			{/if}
-		{/foreach}
+		{/foreach}		
 		</tr>
 	</tbody>
 	{/foreach}
 	
 </table>
 <table cellpadding="2" cellspacing="0" border="0" width="100%" id="{$view->id}_actions">
-	{*
-	{if $total}
-	<tr>
-		<td>
-			{if $active_worker && $active_worker->is_superuser}
-				<button type="button" onclick="genericAjaxPanel('c=tickets&a=showSnippetBulkPanel&view_id={$view->id}&ids=' + Devblocks.getFormEnabledCheckboxValues('viewForm{$view->id}','row_id[]'),null,false,'500');"><span class="cerb-sprite sprite-folder_gear"></span> bulk update</button>
-			{/if}
-		</td>
-	</tr>
-	{/if}
-	*}
 	<tr>
 		<td align="right" valign="top" nowrap="nowrap">
 			{math assign=fromRow equation="(x*y)+1" x=$view->renderPage y=$view->renderLimit}
@@ -118,4 +106,5 @@
 	</tr>
 </table>
 </form>
+<div id="divSnippetChooserPreview"></div>
 <br>
