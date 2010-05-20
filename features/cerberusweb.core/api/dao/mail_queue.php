@@ -380,7 +380,7 @@ class Model_MailQueue {
 		// [TODO] This shouldn't be redundant with open ticket functionality
 
 		// Worker
-		if(null == ($worker = DAO_worker::getAgent($this->worker_id)))
+		if(null == ($worker = DAO_worker::get($this->worker_id)))
 			return false;
 		
 		// To
@@ -430,7 +430,7 @@ class Model_MailQueue {
 		// Parse
 		$ticket_id = CerberusParser::parseMessage($message);
 		
-		$ticket = DAO_Ticket::getTicket($ticket_id);
+		$ticket = DAO_Ticket::get($ticket_id);
 		
 		// Add additional requesters to ticket
 		if(is_array($fromList) && !empty($fromList))

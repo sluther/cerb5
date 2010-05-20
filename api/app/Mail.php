@@ -329,7 +329,7 @@ class CerberusMail {
 		$message_id = DAO_Message::create($fields);
 	    
 		// Link Message to Ticket
-		DAO_Ticket::updateTicket($ticket_id, array(
+		DAO_Ticket::update($ticket_id, array(
 			DAO_Ticket::FIRST_MESSAGE_ID => $message_id,
 		));
 		
@@ -447,7 +447,7 @@ class CerberusMail {
 			$message = DAO_Message::get($reply_message_id);
 	        $message_headers = DAO_MessageHeader::getAll($reply_message_id);		
 			$ticket_id = $message->ticket_id;
-			$ticket = DAO_Ticket::getTicket($ticket_id);
+			$ticket = DAO_Ticket::get($ticket_id);
 	
 			// [TODO] Check that message|ticket isn't NULL
 			
@@ -470,7 +470,7 @@ class CerberusMail {
 			
 			// Prefix the worker name on the personal line?
 			if(!empty($group_personal_with_worker)
-				&& null != ($reply_worker = DAO_Worker::getAgent($worker_id))) {
+				&& null != ($reply_worker = DAO_Worker::get($worker_id))) {
 					$from_personal = $reply_worker->getName() .
 						(!empty($from_personal) ? (', ' . $from_personal) : "");
 			}
@@ -801,7 +801,7 @@ class CerberusMail {
 		}
 			
 		if(!empty($ticket_id) && !empty($change_fields)) {
-		    DAO_Ticket::updateTicket($ticket_id, $change_fields);
+		    DAO_Ticket::update($ticket_id, $change_fields);
 		}
 		
 		// Outbound Reply Event (not automated reply, etc.)

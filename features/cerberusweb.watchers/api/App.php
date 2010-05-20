@@ -144,7 +144,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 		if(null == ($worker_addy = DAO_AddressToWorker::getByAddress($address->email)))
 			return;
 				
-		if(null == ($worker = DAO_Worker::getAgent($worker_addy->worker_id)))
+		if(null == ($worker = DAO_Worker::get($worker_addy->worker_id)))
 			return;
 			
 		$url_writer = DevblocksPlatform::getUrlService();
@@ -156,7 +156,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
 		$default_from = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_FROM, CerberusSettingsDefaults::DEFAULT_REPLY_FROM);
 		$default_personal = $settings->get('cerberusweb.core',CerberusSettings::DEFAULT_REPLY_PERSONAL, CerberusSettingsDefaults::DEFAULT_REPLY_PERSONAL);
 
-		if(null == ($ticket = DAO_Ticket::getTicket($ticket_id)))
+		if(null == ($ticket = DAO_Ticket::get($ticket_id)))
 			return;
 
 		// Find all our matching filters
@@ -396,7 +396,7 @@ class ChWatchersEventListener extends DevblocksEventListenerExtension {
     	
 		$url_writer = DevblocksPlatform::getUrlService();
 		
-		$ticket = DAO_Ticket::getTicket($ticket_id);
+		$ticket = DAO_Ticket::get($ticket_id);
 
 		// Find all our matching filters
 		if(empty($ticket) || false == ($matches = Model_WatcherMailFilter::getMatches(

@@ -719,14 +719,14 @@ class ImportCron extends CerberusCronPageExtension {
 				
 				// First thread
 				if(1==$seek_messages) {
-					DAO_Ticket::updateTicket($ticket_id,array(
+					DAO_Ticket::update($ticket_id,array(
 						DAO_Ticket::FIRST_MESSAGE_ID => $email_id
 					));
 				}
 				
 				// Last thread
 				if($count_messages==$seek_messages) {
-					DAO_Ticket::updateTicket($ticket_id,array(
+					DAO_Ticket::update($ticket_id,array(
 						DAO_Ticket::LAST_MESSAGE_ID => $email_id
 					));
 				}
@@ -853,12 +853,14 @@ class ImportCron extends CerberusCronPageExtension {
 			return true;
 		}
 		
-		$worker_id = DAO_Worker::create($sEmail, CerberusApplication::generatePassword(8), $sFirstName, $sLastName, '');
-		
-		DAO_Worker::updateAgent($worker_id,array(
+		$fields = array(
+			DAO_Worker::EMAIL => $sEmail,
 			DAO_Worker::PASSWORD => $sPassword, // pre-MD5'd
+			DAO_Worker::FIRST_NAME => $sFirstName,
+			DAO_Worker::LAST_NAME => $sLastName,
 			DAO_Worker::IS_SUPERUSER => intval($isSuperuser),
-		));
+		);
+		$worker_id = DAO_Worker::create($fields);
 		
 		// Address to Worker
 		DAO_AddressToWorker::assign($sEmail, $worker_id);

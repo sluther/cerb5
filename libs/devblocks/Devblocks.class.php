@@ -35,6 +35,53 @@ class DevblocksPlatform extends DevblocksEngine {
     private function __construct() { return false; }
 
 	/**
+	 * @param mixed $value
+	 * @param string $type
+	 * @param mixed $default
+	 * @return mixed
+	 */
+	static function importVar($value,$type=null,$default=null) {
+		if(is_null($value) && !is_null($default))
+			$value = $default;
+		
+		// Sanitize input
+		switch($type) {
+			case 'array':
+				@settype($value,$type);
+				break;
+			case 'bit':
+				$value = !empty($value) ? 1 : 0;
+				break;
+			case 'boolean':
+				$value = !empty($value) ? true : false;
+				break;
+			case 'float':
+				$value = floatval($value);
+				break;
+			case 'integer':
+				$value = intval($value);
+				break;
+			case 'string':
+				$value = (string) $value;
+				break;
+			case 'timestamp':
+				if(!is_numeric($value)) {
+					try {
+						$value = strtotime($value);	
+					} catch(Exception $e) {}
+				} else {
+					$value = abs(intval($value));	
+				}
+				break;
+			default:
+				@settype($value,$type);
+				break;
+		}
+		
+		return $value;		
+	}    
+    
+	/**
 	 * @param mixed $var
 	 * @param string $cast
 	 * @param mixed $default
@@ -53,10 +100,10 @@ class DevblocksPlatform extends DevblocksEngine {
 	    } elseif (is_null($var) && !is_null($default)) {
 	        $var = $default;
 	    }
-	    
-	    if(!is_null($cast))
-	        @settype($var, $cast);
 
+	    if(!is_null($cast))
+	    	$var = self::importVar($var, $cast, $default);
+	    
 	    return $var;
 	}
 
@@ -1219,7 +1266,7 @@ class DevblocksPlatform extends DevblocksEngine {
     
 		// App path (always backend)
 	
-		$app_self = $_SERVER["PHP_SELF"];
+		$app_self = $_SERVER["SCRIPT_NAME"];
 		
         if(DEVBLOCKS_REWRITE) {
             $pos = strrpos($app_self,'/');
@@ -4455,7 +4502,7 @@ class _DevblocksUrlManager {
 	
 	function parseURL($url) {
 		// [JAS]: Use the index.php page as a reference to deconstruct the URI
-		$pos = stripos($_SERVER['PHP_SELF'],'index.php',0);
+		$pos = stripos($_SERVER['SCRIPT_NAME'],'index.php',0);
 		if($pos === FALSE) return array();
 
 		// Decode proxy requests
