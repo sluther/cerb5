@@ -40,6 +40,20 @@
 			<td align="right">{if !empty($contact->website)}<a href="{$contact->website|escape}" target="_blank">{'contact_org.website'|devblocks_translate}</a>{else}{'contact_org.website'|devblocks_translate}{/if}: </td>
 			<td><input type="text" name="website" value="{$contact->website|escape}" style="width:98%;"></td>
 		</tr>
+		<tr>
+			<td width="0%" nowrap="nowrap" align="right" valign="top">{$translate->_('contact_org.parent_org')|capitalize}: </td>
+			<td width="100%" valign="top">
+				{if !empty($contact->parent_id)}
+					<b>{if !empty($contact->parent_org_name)}{$contact->parent_org_name}{else if !empty({$org_name})}{$org_name}{/if}</b>
+					<a href="javascript:;" onclick="genericAjaxPanel('c=contacts&a=showOrgPeek&id={if !empty($contact->parent_id)}{$contact->parent_id}{else}{$org_id}{/if}&view_id={$view->id}',null,false,'500');">{$translate->_('views.peek')}</a>
+					<a href="javascript:;" onclick="toggleDiv('divParentOrg');">({$translate->_('common.edit')|lower})</a>
+					<br>
+				{/if}
+				<div id="divParentOrg" style="display:{if empty($contact->parent_id)}block{else}none{/if};">
+					<input type="text" name="parent_org" id="parentorg" style="width:98%;" value="{if !empty($contact->parent_org_name)}{$contact->parent_org_name|escape}{else}{$org_name|escape}{/if}">
+				</div>
+			</td>
+		</tr>
 	</table>
 
 	{include file="file:$core_tpl/internal/custom_fields/bulk/form.tpl" bulk=false}
@@ -57,4 +71,5 @@
 
 <script language="JavaScript1.2" type="text/javascript">
 	ajax.countryAutoComplete('#countryinput');
+	ajax.orgAutoComplete('#parentorg');
 </script>

@@ -464,8 +464,12 @@ class ChContactsPage extends CerberusPageExtension {
 		$tpl->assign('path', $this->_TPL_PATH);
 		
 		$tpl->assign('org_id', $org);
-		
 		$contact = DAO_ContactOrg::get($org);
+		
+		$token_labels = array();
+		$token_values = array();
+		CerberusContexts::getContext(CerberusContexts::CONTEXT_ORG, $contact->parent_org_id, $token_labels, $token_values);
+		$contact->parent_org_name = $token_values[DAO_ContactOrg::NAME];
 		$tpl->assign('contact', $contact);
 
 		$custom_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Org::ID);
@@ -801,10 +805,15 @@ class ChContactsPage extends CerberusPageExtension {
 		
 		$tpl = DevblocksPlatform::getTemplateService();
 		$tpl->assign('path', $this->_TPL_PATH);
-		
 		$contact = DAO_ContactOrg::get($id);
+		
+		$token_labels = array();
+		$token_values = array();
+		CerberusContexts::getContext(CerberusContexts::CONTEXT_ORG, $contact->parent_org_id, $token_labels, $token_values);
+		$contact->parent_org_name = $token_values[DAO_ContactOrg::NAME];
+		
 		$tpl->assign('contact', $contact);
-
+		
 		// Custom fields
 		$custom_fields = DAO_CustomField::getBySource(ChCustomFieldSource_Org::ID); 
 		$tpl->assign('custom_fields', $custom_fields);
@@ -908,6 +917,7 @@ class ChContactsPage extends CerberusPageExtension {
 		@$country = DevblocksPlatform::importGPC($_REQUEST['country'],'string','');
 		@$phone = DevblocksPlatform::importGPC($_REQUEST['phone'],'string','');
 		@$website = DevblocksPlatform::importGPC($_REQUEST['website'],'string','');
+		@$parent_org = DevblocksPlatform::importGPC($_REQUEST['parent_org'],'string','');
 		@$delete = DevblocksPlatform::importGPC($_REQUEST['do_delete'],'integer',0);
 
 		if(!empty($id) && !empty($delete)) { // delete
@@ -919,6 +929,13 @@ class ChContactsPage extends CerberusPageExtension {
 			
 		} else { // create/edit
 			if($active_worker->hasPriv('core.addybook.org.actions.update')) {
+				if(!empty($parent_org)) {
+					$parent_org_id = DAO_ContactOrg::lookup($parent_org, true);
+					$parent_org = DAO_ContactOrg::get($parent_org_id);
+					if(!$parent_org->id == $id) {
+						$parent_org->id = 0;
+					}
+				}
 				$fields = array(
 					DAO_ContactOrg::NAME => $org_name,
 					DAO_ContactOrg::STREET => $street,
@@ -927,7 +944,8 @@ class ChContactsPage extends CerberusPageExtension {
 					DAO_ContactOrg::POSTAL => $postal,
 					DAO_ContactOrg::COUNTRY => $country,
 					DAO_ContactOrg::PHONE => $phone,
-					DAO_ContactOrg::WEBSITE => $website
+					DAO_ContactOrg::WEBSITE => $website,
+					DAO_ContactOrg::PARENT_ORG_ID => $parent_org->id,
 				);
 		
 				if($id==0) {
@@ -997,6 +1015,7 @@ class ChContactsPage extends CerberusPageExtension {
 		@$country = DevblocksPlatform::importGPC($_REQUEST['country'],'string','');
 		@$phone = DevblocksPlatform::importGPC($_REQUEST['phone'],'string','');
 		@$website = DevblocksPlatform::importGPC($_REQUEST['website'],'string','');
+		@$parent_org = DevblocksPlatform::importGPC($_REQUEST['parent_org'],'string','');
 		@$delete = DevblocksPlatform::importGPC($_REQUEST['do_delete'],'integer',0);
 
 		if(!empty($id) && !empty($delete)) { // delete
@@ -1005,6 +1024,14 @@ class ChContactsPage extends CerberusPageExtension {
 			
 		} else { // create/edit
 			if($active_worker->hasPriv('core.addybook.org.actions.update')) {
+				if(!empty($parent_org)) {
+					$parent_org_id = DAO_ContactOrg::lookup($parent_org, true);
+					// are they trying to set the parent of this org to this org?
+					$parent_org = DAO_ContactOrg::get($parent_org_id);
+					if(!$parent_org->id == $id) {
+						$parent_org->id = 0;
+					}
+				}
 				$fields = array(
 					DAO_ContactOrg::NAME => $org_name,
 					DAO_ContactOrg::STREET => $street,
@@ -1014,6 +1041,7 @@ class ChContactsPage extends CerberusPageExtension {
 					DAO_ContactOrg::COUNTRY => $country,
 					DAO_ContactOrg::PHONE => $phone,
 					DAO_ContactOrg::WEBSITE => $website,
+					DAO_ContactOrg::PARENT_ORG_ID => $parent_org->id,
 				);
 		
 				if($id==0) {
