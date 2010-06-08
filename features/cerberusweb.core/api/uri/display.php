@@ -312,10 +312,10 @@ class ChDisplayPage extends CerberusPageExtension {
 		}
 			
 		// Check that the tickets exist
-		if(is_string($dst_ticket_id))
-			$dst_ticket = DAO_Ticket::getTicketByMask($dst_ticket_id);
-		else
+		if(is_numeric($dst_ticket_id))
 			$dst_ticket = DAO_Ticket::get($dst_ticket_id);
+		else
+			$dst_ticket = DAO_Ticket::getTicketByMask($dst_ticket_id);
 			
 		if(empty($src_ticket) || empty($dst_ticket)) {
 			DevblocksPlatform::redirect(new DevblocksHttpResponse(array('display',$refresh_id)));
@@ -1216,7 +1216,7 @@ class ChDisplayPage extends CerberusPageExtension {
 					SearchFields_Ticket::REQUESTER_ID => new DevblocksSearchCriteria(SearchFields_Ticket::REQUESTER_ID,'in',array_keys($requesters)),
 					SearchFields_Ticket::TICKET_DELETED => new DevblocksSearchCriteria(SearchFields_Ticket::TICKET_DELETED,'=',0),
 				);
-				$view->name = ucwords($translate->_('common.email')) . ": " . $contact->email;
+				$view->name = sprintf("History: %d recipient(s)", count($requesters));
 				break;
 		}
 
