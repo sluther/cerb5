@@ -60,6 +60,7 @@
 		<li><a href="{devblocks_url}ajax.php?c=contacts&a=showTabProperties&org={$contact->id}{/devblocks_url}">{$translate->_('addy_book.org.tabs.properties')|escape:'quotes'}</a></li>
 		<li><a href="{devblocks_url}ajax.php?c=contacts&a=showTabHistory&org={$contact->id}{/devblocks_url}">{$translate->_('addy_book.org.tabs.mail_history')|escape:'quotes'}</a></li>
 		<li><a href="{devblocks_url}ajax.php?c=contacts&a=showTabPeople&org={$contact->id}{/devblocks_url}">{'addy_book.org.tabs.people'|devblocks_translate:$people_total|escape:'quotes'}</a></li>
+		<li><a href="{devblocks_url}ajax.php?c=contacts&a=showTabChildOrgs&org={$contact->id}{/devblocks_url}">{'addy_book.org.tabs.childorgs'|devblocks_translate:$childorgs_total|escape:'quotes'}</a></li>
 		<li><a href="{devblocks_url}ajax.php?c=contacts&a=showTabTasks&org={$contact->id}{/devblocks_url}">{'addy_book.org.tabs.tasks'|devblocks_translate:$tasks_total|escape:'quotes'}</a></li>
 
 		{$tabs = [notes,properties,history,people,tasks]}

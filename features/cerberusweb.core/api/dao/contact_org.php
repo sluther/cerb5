@@ -186,6 +186,16 @@ class DAO_ContactOrg extends C4_ORMHelper {
 		return $objects;
 	}
 	
+	
+	static function getCountByOrgId($org_id) {
+		$db = DevblocksPlatform::getDatabaseService();
+		
+		$sql = sprintf("SELECT count(id) FROM contact_org WHERE parent_org_id = %d",
+			$org_id
+		);
+		return intval($db->GetOne($sql));
+	}
+	
 	/**
 	 * @param integer $id
 	 * @return Model_ContactOrg

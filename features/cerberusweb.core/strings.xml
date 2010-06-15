@@ -637,6 +637,9 @@
 		<tu tuid='addy_book.org.tabs.tasks'>
 			<tuv xml:lang="en_US"><seg>Tasks (%s)</seg></tuv>
 		</tu>
+		<tu tuid='addy_book.org.tabs.childorgs'>
+			<tuv xml:lang="en_US"><seg>Child Orgs (%s)</seg></tuv>
+		</tu>
 		<tu tuid='addy_book.peek.compose'>
 			<tuv xml:lang="en_US"><seg>compose</seg></tuv>
 		</tu>
@@ -661,6 +664,7 @@
 		<tu tuid='addy_book.tab.organizations'>
 			<tuv xml:lang="en_US"><seg>Organizations</seg></tuv>
 		</tu>
+        
 
 		<!-- Attachment -->
 		

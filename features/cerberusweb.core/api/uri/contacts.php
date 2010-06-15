@@ -143,6 +143,9 @@ class ChContactsPage extends CerberusPageExtension {
 						$people_count = DAO_Address::getCountByOrgId($contact->id);
 						$tpl->assign('people_total', $people_count);
 						
+						$childorgs_count = DAO_ContactOrg::getCountByOrgId($contact->id);
+						$tpl->assign('childorgs_total', $childorgs_count);
+						
 						$tpl->display('file:' . $this->_TPL_PATH . 'contacts/orgs/display.tpl');
 						return;
 						break; // case 'orgs/display'
@@ -571,6 +574,36 @@ class ChContactsPage extends CerberusPageExtension {
 		$tpl->assign('search_columns', SearchFields_Address::getFields());
 		
 		$tpl->display('file:' . $this->_TPL_PATH . 'contacts/orgs/tabs/people.tpl');
+		exit;
+	}
+	
+	function showTabChildOrgsAction() {
+		@$org = DevblocksPlatform::importGPC($_REQUEST['org']);
+		
+		$tpl = DevblocksPlatform::getTemplateService();
+		$tpl->assign('path', $this->_TPL_PATH);
+		
+		$contact = DAO_ContactOrg::get($org);
+		$tpl->assign('contact', $contact);
+		
+		$defaults = new C4_AbstractViewModel();
+		$defaults->class_name = 'View_ContactOrg';
+		$defaults->id = View_ContactOrg::DEFAULT_ID;
+		
+		$view = C4_AbstractViewLoader::getView(View_ContactOrg::DEFAULT_ID, $defaults);
+		
+		$view->params = array(
+			new DevblocksSearchCriteria(SearchFields_ContactOrg::PARENT_ORG_ID,'=',$contact->id),
+		);
+		$tpl->assign('view', $view);
+		
+		C4_AbstractViewLoader::setView($view->id, $view);
+		
+		$tpl->assign('contacts_page', 'orgs');
+		$tpl->assign('response_uri', 'contacts/orgs');
+		$tpl->assign('view_fields', View_ContactOrg::getFields());
+		$tpl->assign('view_searchable_fields', View_ContactOrg::getSearchFields());		
+		$tpl->display('file:' . $this->_TPL_PATH . 'contacts/orgs/tabs/childorgs.tpl');
 		exit;
 	}
 	
