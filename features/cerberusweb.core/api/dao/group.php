@@ -523,6 +523,10 @@ class Model_Group {
 	public $name;
 	public $count;
 	public $is_default = 0;
+	
+	public function getMembers() {
+		return DAO_Group::getTeamMembers($this->id);
+	}
 };
 
 class DAO_GroupSettings {
@@ -705,7 +709,7 @@ class View_Group extends C4_AbstractView {
 		$values = !is_array($param->value) ? array($param->value) : $param->value;
 
 		switch($field) {
-//			case SearchFields_WorkerEvent::WORKER_ID:
+//			case SearchFields_Notification::WORKER_ID:
 //				$workers = DAO_Worker::getAll();
 //				$strings = array();
 //

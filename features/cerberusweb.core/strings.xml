@@ -12,9 +12,6 @@
 		<tu tuid='core.menu.address_book'>
 			<tuv xml:lang="en_US"><seg>address book</seg></tuv>
 		</tu>
-		<tu tuid='core.menu.mail'>
-			<tuv xml:lang="en_US"><seg>mail</seg></tuv>
-		</tu>
 		
 		<tu tuid='display.tab.comments'>
 			<tuv xml:lang="en_US"><seg>Comments (%s)</seg></tuv>
@@ -71,6 +68,9 @@
 		</tu>
 		<tu tuid='common.bucket'>
 			<tuv xml:lang="en_US"><seg>Bucket</seg></tuv>
+		</tu>
+		<tu tuid='common.buckets'>
+			<tuv xml:lang="en_US"><seg>Buckets</seg></tuv>
 		</tu>
 		<tu tuid='common.bulk_update'>
 			<tuv xml:lang="en_US"><seg>Bulk Update</seg></tuv>
@@ -207,11 +207,26 @@
 		<tu tuid='common.knowledgebase'>
 			<tuv xml:lang="en_US"><seg>Knowledgebase</seg></tuv>
 		</tu>
+		<tu tuid='common.mail'>
+			<tuv xml:lang="en_US"><seg>Mail</seg></tuv>
+		</tu>
+		<tu tuid='common.manager'>
+			<tuv xml:lang="en_US"><seg>Manager</seg></tuv>
+		</tu>
+		<tu tuid='common.managers'>
+			<tuv xml:lang="en_US"><seg>Managers</seg></tuv>
+		</tu>
 		<tu tuid='common.maximize'>
 			<tuv xml:lang="en_US"><seg>maximize</seg></tuv>
 		</tu>
 		<tu tuid='common.me'>
 			<tuv xml:lang="en_US"><seg>me</seg></tuv>
+		</tu>
+		<tu tuid='common.member'>
+			<tuv xml:lang="en_US"><seg>Member</seg></tuv>
+		</tu>
+		<tu tuid='common.members'>
+			<tuv xml:lang="en_US"><seg>Members</seg></tuv>
 		</tu>
 		<tu tuid='common.messages'>
 			<tuv xml:lang="en_US"><seg>Messages</seg></tuv>
@@ -302,6 +317,9 @@
 		</tu>
 		<tu tuid='common.print'>
 			<tuv xml:lang="en_US"><seg>Print</seg></tuv>
+		</tu>
+		<tu tuid='common.profiles'>
+			<tuv xml:lang="en_US"><seg>Profiles</seg></tuv>
 		</tu>
 		<tu tuid='common.properties'>
 			<tuv xml:lang="en_US"><seg>Properties</seg></tuv>
@@ -714,6 +732,40 @@
 			<tuv xml:lang="en_US"><seg>Size (bytes)</seg></tuv>
 		</tu>
 
+		<!-- Community Portal -->
+
+		<tu tuid='community_portal.code'>
+			<tuv xml:lang="en_US"><seg>Profile ID</seg></tuv>
+		</tu>
+		<tu tuid='community_portal.extension_id'>
+			<tuv xml:lang="en_US"><seg>Extension</seg></tuv>
+		</tu>
+		<tu tuid='community_portal.name'>
+			<tuv xml:lang="en_US"><seg>Name</seg></tuv>
+		</tu>
+		
+		<!-- Community -->
+		
+		<tu tuid='portal.cfg.add_tool'>
+			<tuv xml:lang="en_US"><seg>Add a New Community Portal:</seg></tuv>
+		</tu>
+		<tu tuid='portal.cfg.confirm_delete'>
+			<tuv xml:lang="en_US"><seg>Are you sure you want to permanently delete this community portal?</seg></tuv>
+		</tu>
+		<tu tuid='portal.cfg.htaccess_hint'>
+			<tuv xml:lang="en_US"><seg>(optional, friendly URLs for Apache Web Server users)</seg></tuv>
+		</tu>
+		<tu tuid='portal.cfg.installation'>
+			<tuv xml:lang="en_US"><seg>Installation</seg></tuv>
+		</tu>
+		<tu tuid='portal.cfg.installation_instructions'>
+			<tuv xml:lang="en_US"><seg>Place the index.php file in a new directory on the appropriate public website.  This directory can be named anything but will usually describe the portal.
+For example: http://www.cerberusweb.com/support/</seg></tuv>
+		</tu>
+		<tu tuid='portal.cfg.profile_id'>
+			<tuv xml:lang="en_US"><seg>Profile ID:</seg></tuv>
+		</tu>
+
 		<!-- Configuration -->
 		
 		<tu tuid='config.mail.pop3.error_hostname'>
@@ -896,7 +948,7 @@
 			<tuv xml:lang="en_US"><seg>%s unread notification(s)</seg></tuv>
 		</tu>
 		<tu tuid='header.preferences'>
-			<tuv xml:lang="en_US"><seg>my account</seg></tuv>
+			<tuv xml:lang="en_US"><seg>my settings</seg></tuv>
 		</tu>
 		<tu tuid='header.signed_in'>
 			<tuv xml:lang="en_US"><seg>Signed on as %s</seg></tuv>
@@ -1447,14 +1499,6 @@ For example: *receipt*</seg></tuv>
 			<tuv xml:lang="en_US"><seg>Ticket Tasks</seg></tuv>
 		</tu>
 		
-		<!-- Groups -->
-		<tu tuid='group.manager'>
-			<tuv xml:lang="en_US"><seg>manager</seg></tuv>
-		</tu>
-		<tu tuid='group.member'>
-			<tuv xml:lang="en_US"><seg>member</seg></tuv>
-		</tu>
-		
 		<!-- Task -->
 
 		<tu tuid='task.completed_date'>
@@ -1465,12 +1509,6 @@ For example: *receipt*</seg></tuv>
 		</tu>
 		<tu tuid='task.is_completed'>
 			<tuv xml:lang="en_US"><seg>Completed</seg></tuv>
-		</tu>
-		<tu tuid='task.source_extension'>
-			<tuv xml:lang="en_US"><seg>Source</seg></tuv>
-		</tu>
-		<tu tuid='task.source_id'>
-			<tuv xml:lang="en_US"><seg>Source ID</seg></tuv>
 		</tu>
 		<tu tuid='task.updated_date'>
 			<tuv xml:lang="en_US"><seg>Last Updated</seg></tuv>
@@ -1634,19 +1672,19 @@ For example: *receipt*</seg></tuv>
 
 		<!-- Worker Event -->
 
-		<tu tuid='worker_event.id'>
+		<tu tuid='notification.id'>
 			<tuv xml:lang="en_US"><seg>ID</seg></tuv>
 		</tu>
-		<tu tuid='worker_event.created_date'>
+		<tu tuid='notification.created_date'>
 			<tuv xml:lang="en_US"><seg>Created</seg></tuv>
 		</tu>
-		<tu tuid='worker_event.is_read'>
+		<tu tuid='notification.is_read'>
 			<tuv xml:lang="en_US"><seg>Is Read</seg></tuv>
 		</tu>
-		<tu tuid='worker_event.message'>
+		<tu tuid='notification.message'>
 			<tuv xml:lang="en_US"><seg>Message</seg></tuv>
 		</tu>
-		<tu tuid='worker_event.worker_id'>
+		<tu tuid='notification.worker_id'>
 			<tuv xml:lang="en_US"><seg>Worker</seg></tuv>
 		</tu>
 		

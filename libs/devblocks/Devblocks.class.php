@@ -3164,8 +3164,12 @@ class _DevblocksEmailManager {
 	}
 	
 	function testImap($server, $port, $service, $username, $password) {
-		if (!extension_loaded("imap")) die("IMAP Extension not loaded!");
+		if (!extension_loaded("imap")) 
+			throw new Exception("PHP 'imap' extension is not loaded!");
 		
+		// Clear error stack
+		imap_errors();	
+			
         switch($service) {
             default:
             case 'pop3': // 110
@@ -3197,16 +3201,21 @@ class _DevblocksEmailManager {
                 break;
         }
 		
-		@$mailbox = imap_open(
-			$connect,
-			!empty($username)?$username:"superuser",
-			!empty($password)?$password:"superuser"
-		);
-
-		if($mailbox === FALSE)
-			return FALSE;
-		
-		@imap_close($mailbox);
+        try {
+			$mailbox = @imap_open(
+				$connect,
+				!empty($username)?$username:"superuser",
+				!empty($password)?$password:"superuser"
+			);
+	
+			if($mailbox === FALSE)
+				throw new Exception(imap_last_error());
+			
+			@imap_close($mailbox);
+			
+        } catch(Exception $e) {
+        	throw new Exception($e->getMessage());
+        }
 			
 		return TRUE;
 	}
@@ -4217,6 +4226,7 @@ class _DevblocksTemplateManager {
 			$instance->registerPlugin('modifier','devblocks_date', array('_DevblocksTemplateManager', 'modifier_devblocks_date'));
 			$instance->registerPlugin('modifier','devblocks_hyperlinks', array('_DevblocksTemplateManager', 'modifier_devblocks_hyperlinks'));
 			$instance->registerPlugin('modifier','devblocks_hideemailquotes', array('_DevblocksTemplateManager', 'modifier_devblocks_hide_email_quotes'));
+			$instance->registerPlugin('modifier','devblocks_permalink', array('_DevblocksTemplateManager', 'modifier_devblocks_permalink'));
 			$instance->registerPlugin('modifier','devblocks_prettytime', array('_DevblocksTemplateManager', 'modifier_devblocks_prettytime'));
 			$instance->registerPlugin('modifier','devblocks_prettybytes', array('_DevblocksTemplateManager', 'modifier_devblocks_prettybytes'));
 			$instance->registerPlugin('modifier','devblocks_translate', array('_DevblocksTemplateManager', 'modifier_devblocks_translate'));
@@ -4260,6 +4270,19 @@ class _DevblocksTemplateManager {
 	
 		$date = DevblocksPlatform::getDateService();
 		return $date->formatTime($format, $string, $gmt);
+	}
+	
+	static function modifier_devblocks_permalink($string, $is_delta=false) {
+		if(empty($string))
+			return '';
+		
+		// Strip all punctuation to underscores
+		$string = preg_replace('#[^a-zA-Z0-9\+\.\-_\(\)]#', '_', $string);
+			
+		// Collapse all underscores to singles
+		$string = preg_replace('#__+#', '_', $string);
+		
+		return rtrim($string,'_');
 	}
 	
 	static function modifier_devblocks_prettytime($string, $is_delta=false) {
