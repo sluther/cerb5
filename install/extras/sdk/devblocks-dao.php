@@ -4,13 +4,19 @@
  * @author Jeff Standen, WebGroup Media LLC <jeff@webgroupmedia.com>
  * @version 2010-10-02 
  */
+ 
 
 $tables = array();
+
+$plugin_id = 'example.plugin.id';
+$plugin = '';
+$strings = '';
 
 $tables['ExampleTable'] = "
 id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 name VARCHAR(255) DEFAULT '',
 ";
+
 
 foreach($tables as $table_name => $field_strs) {
 	// Class
@@ -29,24 +35,21 @@ foreach($tables as $table_name => $field_strs) {
 		$field_props = explode(' ', rtrim($field_str, ",\n\r "));
 		$fields[trim($field_props[0])] = trim($field_props[1]);
 	}
-	
-?>
-<b>api/dao/<?php echo $table_name; ?>.php</b><br>
-<textarea style="width:98%;height:200px;">
-class DAO_<?php echo $class_name; ?> extends C4_ORMHelper {
-<?php 
+@mkdir('plugins/' . $plugin_id . '/api/dao', 0777, true);
+$fp = fopen('plugins/'.$plugin_id.'/api/dao/'.$table_name.'.php', 'w');
+$$table_name = "<?php\nclass DAO_$class_name extends C4_ORMHelper {\n";
 foreach($fields as $field_name => $field_type) {
-	printf("\tconst %s = '%s';\n",
+	$$table_name .= sprintf("\tconst %s = '%s';\n",
 		strtoupper($field_name),
 		$field_name
 	); 
 }
-?>
 
+$$table_name .= '
 	static function create($fields) {
 		$db = DevblocksPlatform::getDatabaseService();
 		
-		$sql = "INSERT INTO <?php echo $table_name; ?> () VALUES ()";
+		$sql = "INSERT INTO '. $table_name .' () VALUES ()";
 		$db->Execute($sql);
 		$id = $db->LastInsertId();
 		
@@ -56,11 +59,11 @@ foreach($fields as $field_name => $field_type) {
 	}
 	
 	static function update($ids, $fields) {
-		parent::_update($ids, '<?php echo $table_name; ?>', $fields);
+		parent::_update($ids, \''.$table_name.'\', $fields);
 	}
 	
 	static function updateWhere($fields, $where) {
-		parent::_updateWhere('<?php echo $table_name; ?>', $fields, $where);
+		parent::_updateWhere(\''.$table_name.'\', $fields, $where);
 	}
 	
 	/**
@@ -68,7 +71,7 @@ foreach($fields as $field_name => $field_type) {
 	 * @param mixed $sortBy
 	 * @param mixed $sortAsc
 	 * @param integer $limit
-	 * @return Model_<?php echo $class_name; ?>[]
+	 * @return Model_$class_name
 	 */
 	static function getWhere($where=null, $sortBy=null, $sortAsc=true, $limit=null) {
 		$db = DevblocksPlatform::getDatabaseService();
@@ -76,8 +79,8 @@ foreach($fields as $field_name => $field_type) {
 		list($where_sql, $sort_sql, $limit_sql) = self::_getWhereSQL($where, $sortBy, $sortAsc, $limit);
 		
 		// SQL
-		$sql = "SELECT <?php echo implode(', ', array_keys($fields)); ?> ".
-			"FROM <?php echo $table_name; ?> ".
+		$sql = "SELECT '.implode(", ", array_keys($fields)) .'".
+			"FROM '.$table_name.' ".
 			$where_sql.
 			$sort_sql.
 			$limit_sql
@@ -89,7 +92,7 @@ foreach($fields as $field_name => $field_type) {
 
 	/**
 	 * @param integer $id
-	 * @return Model_<?php echo $class_name; ?>
+	 * @return Model_$class_name
 	 */
 	static function get($id) {
 		$objects = self::getWhere(sprintf("%s = %d",
@@ -105,21 +108,22 @@ foreach($fields as $field_name => $field_type) {
 	
 	/**
 	 * @param resource $rs
-	 * @return Model_<?php echo $class_name; ?>[]
+	 * @return Model_'.$class_name.'[]
 	 */
 	static private function _getObjectsFromResult($rs) {
 		$objects = array();
 		
 		while($row = mysql_fetch_assoc($rs)) {
-			$object = new Model_<?php echo $class_name; ?>();
-<?php 
+			$object = new Model_'.$class_name.'();
+';
 foreach($fields as $field_name => $field_type) {
-	printf("\t\t\t\$object->%s = \$row['%s'];\n",
+	$$table_name .= sprintf("\t\t\t\$object->%s = \$row['%s'];\n",
 		$field_name,
 		$field_name
 	);	
 }
-?>
+
+$$table_name .= '
 			$objects[$object->id] = $object;
 		}
 		
@@ -135,15 +139,15 @@ foreach($fields as $field_name => $field_type) {
 		if(empty($ids))
 			return;
 		
-		$ids_list = implode(',', $ids);
+		$ids_list = implode(\',\', $ids);
 		
-		$db->Execute(sprintf("DELETE FROM <?php echo $table_name; ?> WHERE id IN (%s)", $ids_list));
+		$db->Execute(sprintf("DELETE FROM '.$table_name.' WHERE id IN (%s)", $ids_list));
 		
 		return true;
 	}
 	
 	public static function getSearchQueryComponents($columns, $params, $sortBy=null, $sortAsc=null) {
-		$fields = SearchFields_<?php echo $class_name; ?>::getFields();
+		$fields = SearchFields_.'.$class_name.'::getFields();
 		
 		// Sanitize
 		if(!isset($fields[$sortBy]))
@@ -152,11 +156,11 @@ foreach($fields as $field_name => $field_type) {
         list($tables,$wheres) = parent::_parseSearchParams($params, $columns, $fields, $sortBy);
 		
 		$select_sql = sprintf("SELECT ".
-<?php
+';
 $num_fields = 0; 
 foreach($fields as $field_name => $field_type) {
 	$num_fields++;
-	printf("\t\t\t\"%s.%s as %%s%s",
+	$$table_name .= sprintf("\t\t\t\"%s.%s as %%s%s",
 		$table_name,
 		$field_name,
 		(($num_fields==count($fields)) ? " \",\n" : ", \".\n") // ending
@@ -165,39 +169,39 @@ foreach($fields as $field_name => $field_type) {
 $num_fields = 0; 
 foreach($fields as $field_name => $field_type) {
 	$num_fields++;
-	printf("\t\t\t\tSearchFields_%s::%s%s",
+	$$table_name .= sprintf("\t\t\t\tSearchFields_%s::%s%s",
 		$class_name,
 		strtoupper($field_name),
 		($num_fields==count($fields)) ? "\n" : ",\n"
 	);
 }
-?>
+$$table_name .= '
 			);
 			
-		$join_sql = "FROM <?php echo $table_name; ?> ";
+		$join_sql = "FROM '.$table_name.'";
 		
 		// Custom field joins
 		//list($select_sql, $join_sql, $has_multiple_values) = self::_appendSelectJoinSqlForCustomFieldTables(
 		//	$tables,
 		//	$params,
-		//	'<?php echo $table_name; ?>.id',
+		//	\''.$table_name.'.id\',
 		//	$select_sql,
 		//	$join_sql
 		//);
 		$has_multiple_values = false; // [TODO] Temporary when custom fields disabled
 				
 		$where_sql = "".
-			(!empty($wheres) ? sprintf("WHERE %s ",implode(' AND ',$wheres)) : "WHERE 1 ");
+			(!empty($wheres) ? sprintf("WHERE %s ",implode(\' AND \',$wheres)) : "WHERE 1 ");
 			
 		$sort_sql = (!empty($sortBy)) ? sprintf("ORDER BY %s %s ",$sortBy,($sortAsc || is_null($sortAsc))?"ASC":"DESC") : " ";
 	
 		return array(
-			'primary_table' => '<?php echo $table_name; ?>',
-			'select' => $select_sql,
-			'join' => $join_sql,
-			'where' => $where_sql,
-			'has_multiple_values' => $has_multiple_values,
-			'sort' => $sort_sql,
+			\'primary_table\' => \''.$table_name.'\',
+			\'select\' => $select_sql,
+			\'join\' => $join_sql,
+			\'where\' => $where_sql,
+			\'has_multiple_values\' => $has_multiple_values,
+			\'sort\' => $sort_sql,
 		);
 	}
 	
@@ -219,23 +223,23 @@ foreach($fields as $field_name => $field_type) {
 		// Build search queries
 		$query_parts = self::getSearchQueryComponents($columns,$params,$sortBy,$sortAsc);
 
-		$select_sql = $query_parts['select'];
-		$join_sql = $query_parts['join'];
-		$where_sql = $query_parts['where'];
-		$has_multiple_values = $query_parts['has_multiple_values'];
-		$sort_sql = $query_parts['sort'];
+		$select_sql = $query_parts[\'select\'];
+		$join_sql = $query_parts[\'join\'];
+		$where_sql = $query_parts[\'where\'];
+		$has_multiple_values = $query_parts[\'has_multiple_values\'];
+		$sort_sql = $query_parts[\'sort\'];
 		
 		$sql = 
 			$select_sql.
 			$join_sql.
 			$where_sql.
-			($has_multiple_values ? 'GROUP BY <?php echo $table_name; ?>.id ' : '').
+			($has_multiple_values ? \'GROUP BY '.$table_name.'.id .\' : \'\').
 			$sort_sql;
 			
 		if($limit > 0) {
-    		$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
+    		$rs = $db->SelectLimit($sql,$limit,$page*$limit) or die(__CLASS__ . \'(\'.__LINE__.\')\'. \':\' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
 		} else {
-		    $rs = $db->Execute($sql) or die(__CLASS__ . '('.__LINE__.')'. ':' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
+		    $rs = $db->Execute($sql) or die(__CLASS__ . \'(\'.__LINE__.\')\'. \':\' . $db->ErrorMsg()); /* @var $rs ADORecordSet */
             $total = mysql_num_rows($rs);
 		}
 		
@@ -247,14 +251,14 @@ foreach($fields as $field_name => $field_type) {
 			foreach($row as $f => $v) {
 				$result[$f] = $v;
 			}
-			$object_id = intval($row[SearchFields_<?php echo $class_name; ?>::ID]);
+			$object_id = intval($row[SearchFields_'.$class_name.'::ID]);
 			$results[$object_id] = $result;
 		}
 
 		// [JAS]: Count all
 		if($withCounts) {
 			$count_sql = 
-				($has_multiple_values ? "SELECT COUNT(DISTINCT <?php echo $table_name; ?>.id) " : "SELECT COUNT(<?php echo $table_name; ?>.id) ").
+				($has_multiple_values ? "SELECT COUNT(DISTINCT '.$table_name.'.id\') " : "SELECT COUNT('.$table_name.'.id) ").
 				$join_sql.
 				$where_sql;
 			$total = $db->GetOne($count_sql);
@@ -266,19 +270,18 @@ foreach($fields as $field_name => $field_type) {
 	}
 
 };
-</textarea>
 
-<textarea style="width:98%;height:200px;">
-class SearchFields_<?php echo $class_name; ?> implements IDevblocksSearchFields {
-<?php
+class SearchFields_'.$class_name.' implements IDevblocksSearchFields {
+';
 foreach($fields as $field_name => $field_type) {
-	printf("\tconst %s = '%s_%s';\n",
+	$$table_name .= sprintf("\tconst %s = '%s_%s';\n",
 		strtoupper($field_name),
 		substr($table_name,0,1),
 		$field_name
 	);
 }
-?>
+
+$$table_name .= '
 	
 	/**
 	 * @return DevblocksSearchField[]
@@ -287,9 +290,9 @@ foreach($fields as $field_name => $field_type) {
 		$translate = DevblocksPlatform::getTranslationService();
 		
 		$columns = array(
-<?php
+';
 foreach($fields as $field_name => $field_type) {
-	printf("\t\t\tself::%s => new DevblocksSearchField(self::%s, '%s', '%s', \$translate->_('dao.%s.%s')),\n",
+	$$table_name .= sprintf("\t\t\tself::%s => new DevblocksSearchField(self::%s, '%s', '%s', \$translate->_('dao.%s.%s')),\n",
 		strtoupper($field_name),
 		strtoupper($field_name),
 		$table_name,
@@ -298,7 +301,7 @@ foreach($fields as $field_name => $field_type) {
 		$field_name
 	);
 }
-?>
+$$table_name .= '
 		);
 		
 		// Custom Fields
@@ -306,53 +309,48 @@ foreach($fields as $field_name => $field_type) {
 
 		//if(is_array($fields))
 		//foreach($fields as $field_id => $field) {
-		//	$key = 'cf_'.$field_id;
-		//	$columns[$key] = new DevblocksSearchField($key,$key,'field_value',$field->name);
+		//	$key = \'cf_\'.$field_id;
+		//	$columns[$key] = new DevblocksSearchField($key,$key,\'field_value\',$field->name);
 		//}
 		
 		// Sort by label (translation-conscious)
-		uasort($columns, create_function('$a, $b', "return strcasecmp(\$a->db_label,\$b->db_label);\n"));
+		uasort($columns, create_function(\'$a, $b\', "return strcasecmp(\$a->db_label,\$b->db_label);\n"));
 
 		return $columns;		
 	}
 };
-</textarea>
-
-<textarea style="width:98%;height:200px;">
-class Model_<?php echo $class_name; ?> {
-<?php
+class Model_'.$class_name.' {
+';
 foreach($fields as $field_name => $field_type) {
-	printf("\tpublic \$%s;\n",
+	$$table_name .= sprintf("\tpublic \$%s;\n",
 		$field_name
 	);
 };
-?>
+$$table_name .= '
 };
-</textarea>
 
-<textarea style="width:98%;height:200px;">
-class View_<?php echo $class_name; ?> extends C4_AbstractView {
-	const DEFAULT_ID = '<?php echo strtolower($class_name); ?>';
+class View_'.$class_name.' extends C4_AbstractView {
+	const DEFAULT_ID = \''.strtolower($class_name).'\';
 
 	function __construct() {
 		$translate = DevblocksPlatform::getTranslationService();
 	
 		$this->id = self::DEFAULT_ID;
 		// [TODO] Name the worklist view
-		$this->name = $translate->_('<?php echo $class_name; ?>');
+		$this->name = $translate->_(\''.$class_name.'\');
 		$this->renderLimit = 25;
-		$this->renderSortBy = SearchFields_<?php echo $class_name; ?>::ID;
+		$this->renderSortBy = SearchFields_'.$class_name.'::ID;
 		$this->renderSortAsc = true;
 
 		$this->view_columns = array(
-<?php
+';
 foreach($fields as $field_name => $field_type) {
-	printf("\t\t\tSearchFields_%s::%s,\n",
+	$$table_name .= sprintf("\t\t\tSearchFields_%s::%s,\n",
 		$class_name,
 		strtoupper($field_name)
 	);
 }
-?>
+$$table_name .= '
 		);
 		// [TODO] Filter fields
 		$this->addColumnsHidden(array(
@@ -366,7 +364,7 @@ foreach($fields as $field_name => $field_type) {
 	}
 
 	function getData() {
-		$objects = DAO_<?php echo $class_name; ?>::search(
+		$objects = DAO_'.$class_name.'::search(
 			$this->view_columns,
 			$this->getParams(),
 			$this->renderLimit,
@@ -379,57 +377,57 @@ foreach($fields as $field_name => $field_type) {
 	}
 	
 	function getDataSample($size) {
-		return $this->_doGetDataSample('DAO_<?php echo $class_name; ?>', $size);
+		return $this->_doGetDataSample(\'DAO_'.$class_name.'\', $size);
 	}
 
 	function render() {
 		$this->_sanitize();
 		
 		$tpl = DevblocksPlatform::getTemplateService();
-		$tpl->assign('id', $this->id);
-		$tpl->assign('view', $this);
+		$tpl->assign(\'id\', $this->id);
+		$tpl->assign(\'view\', $this);
 
 		// Custom fields
 		//$custom_fields = DAO_CustomField::getByContext(CerberusContexts::XXX);
-		//$tpl->assign('custom_fields', $custom_fields);
+		//$tpl->assign(\'custom_fields\', $custom_fields);
 
 		// [TODO] Set your template path
-		$tpl->display('devblocks:example.plugin::path/to/view.tpl');
+		$tpl->display(\'devblocks:example.plugin::path/to/view.tpl\');
 	}
 
 	function renderCriteria($field) {
 		$tpl = DevblocksPlatform::getTemplateService();
-		$tpl->assign('id', $this->id);
+		$tpl->assign(\'id\', $this->id);
 
 		// [TODO] Move the fields into the proper data type
 		switch($field) {
-<?php
+';
 foreach($fields as $field_name => $field_type) {
-	printf("\t\t\tcase SearchFields_%s::%s:\n",
+	$$table_name .= sprintf("\t\t\tcase SearchFields_%s::%s:\n",
 		$class_name,
 		strtoupper($field_name)
 	);
 }
-?>
-			case 'placeholder_string':
-				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__string.tpl');
+$$table_name .= '
+			case \'placeholder_string\':
+				$tpl->display(\'devblocks:cerberusweb.core::internal/views/criteria/__string.tpl\');
 				break;
-			case 'placeholder_number':
-				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__number.tpl');
+			case \'placeholder_number\':
+				$tpl->display(\'devblocks:cerberusweb.core::internal/views/criteria/__number.tpl\');
 				break;
-			case 'placeholder_bool':
-				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__bool.tpl');
+			case \'placeholder_bool\':
+				$tpl->display(\'devblocks:cerberusweb.core::internal/views/criteria/__bool.tpl\');
 				break;
-			case 'placeholder_date':
-				$tpl->display('devblocks:cerberusweb.core::internal/views/criteria/__date.tpl');
+			case \'placeholder_date\':
+				$tpl->display(\'devblocks:cerberusweb.core::internal/views/criteria/__date.tpl\');
 				break;
 			/*
 			default:
 				// Custom Fields
-				if('cf_' == substr($field,0,3)) {
+				if(\'cf_\' == substr($field,0,3)) {
 					$this->_renderCriteriaCustomField($tpl, substr($field,3));
 				} else {
-					echo ' ';
+					echo \' \';
 				}
 				break;
 			*/
@@ -448,7 +446,7 @@ foreach($fields as $field_name => $field_type) {
 	}
 
 	function getFields() {
-		return SearchFields_<?php echo $class_name; ?>::getFields();
+		return SearchFields_'.$class_name.'::getFields();
 	}
 
 	function doSetCriteria($field, $oper, $value) {
@@ -456,45 +454,45 @@ foreach($fields as $field_name => $field_type) {
 
 		// [TODO] Move fields into the right data type
 		switch($field) {
-<?php
+';
 foreach($fields as $field_name => $field_type) {
-	printf("\t\t\tcase SearchFields_%s::%s:\n",
+	$$table_name .= sprintf("\t\t\tcase SearchFields_%s::%s:\n",
 		$class_name,
 		strtoupper($field_name)
 	);
 }
-?>
-			case 'placeholder_string':
+$$table_name .= '
+			case \'placeholder_string\':
 				// force wildcards if none used on a LIKE
 				if(($oper == DevblocksSearchCriteria::OPER_LIKE || $oper == DevblocksSearchCriteria::OPER_NOT_LIKE)
-				&& false === (strpos($value,'*'))) {
-					$value = $value.'*';
+				&& false === (strpos($value,\'*\'))) {
+					$value = $value.\'*\';
 				}
 				$criteria = new DevblocksSearchCriteria($field, $oper, $value);
 				break;
-			case 'placeholder_number':
+			case \'placeholder_number\':
 				$criteria = new DevblocksSearchCriteria($field,$oper,$value);
 				break;
 				
-			case 'placeholder_date':
-				@$from = DevblocksPlatform::importGPC($_REQUEST['from'],'string','');
-				@$to = DevblocksPlatform::importGPC($_REQUEST['to'],'string','');
+			case \'placeholder_date\':
+				@$from = DevblocksPlatform::importGPC($_REQUEST[\'from\'],\'string\',\'\');
+				@$to = DevblocksPlatform::importGPC($_REQUEST[\'to\'],\'string\',\'\');
 
 				if(empty($from)) $from = 0;
-				if(empty($to)) $to = 'today';
+				if(empty($to)) $to = \'today\';
 
 				$criteria = new DevblocksSearchCriteria($field,$oper,array($from,$to));
 				break;
 				
-			case 'placeholder_bool':
-				@$bool = DevblocksPlatform::importGPC($_REQUEST['bool'],'integer',1);
+			case \'placeholder_bool\':
+				@$bool = DevblocksPlatform::importGPC($_REQUEST[\'bool\'],\'integer\',1);
 				$criteria = new DevblocksSearchCriteria($field,$oper,$bool);
 				break;
 				
 			/*
 			default:
 				// Custom Fields
-				if(substr($field,0,3)=='cf_') {
+				if(substr($field,0,3)==\'cf_\') {
 					$criteria = $this->_doSetCriteriaCustomField($field, substr($field,3));
 				}
 				break;
@@ -525,8 +523,8 @@ foreach($fields as $field_name => $field_type) {
 		foreach($do as $k => $v) {
 			switch($k) {
 				// [TODO] Implement actions
-				case 'example':
-					//$change_fields[DAO_<?php echo $class_name; ?>::EXAMPLE] = 'some value';
+				case \'example\':
+					//$change_fields[DAO_'.$class_name.'::EXAMPLE] = \'some value\';
 					break;
 				/*
 				default:
@@ -543,12 +541,12 @@ foreach($fields as $field_name => $field_type) {
 
 		if(empty($ids))
 		do {
-			list($objects,$null) = DAO_<?php echo $class_name; ?>::search(
+			list($objects,$null) = DAO_'.$class_name.'::search(
 				array(),
 				$this->getParams(),
 				100,
 				$pg++,
-				SearchFields_<?php echo $class_name; ?>::ID,
+				SearchFields_'.$class_name.'::ID,
 				true,
 				false
 			);
@@ -560,10 +558,10 @@ foreach($fields as $field_name => $field_type) {
 		for($x=0;$x<=$batch_total;$x+=100) {
 			$batch_ids = array_slice($ids,$x,100);
 			
-			DAO_<?php echo $class_name; ?>::update($batch_ids, $change_fields);
+			DAO_'.$class_name.'::update($batch_ids, $change_fields);
 
 			// Custom Fields
-			//self::_doBulkSetCustomFields(ChCustomFieldSource_<?php echo $class_name; ?>::ID, $custom_fields, $batch_ids);
+			//self::_doBulkSetCustomFields(ChCustomFieldSource_'.$class_name.'::ID, $custom_fields, $batch_ids);
 			
 			unset($batch_ids);
 		}
@@ -571,27 +569,38 @@ foreach($fields as $field_name => $field_type) {
 		unset($ids);
 	}			
 };
-</textarea>
+';
+fwrite($fp, $$table_name);
+fclose($fp);
 
-<b>plugin.xml</b><br>
-<textarea style="width:98%;height:200px;">
-<file path="api/dao/<?php echo $table_name; ?>.php">
-	<class name="DAO_<?php echo $class_name; ?>" />
-	<class name="Model_<?php echo $class_name; ?>" />
-	<class name="SearchFields_<?php echo $class_name; ?>" />
-	<class name="View_<?php echo $class_name; ?>" />
+echo '<b>api/dao/'.$table_name.'.php</b><br>
+<textarea style="width:98%;height:200px;">'. $$table_name .'</textarea>';
+
+
+$plugin .= '
+<file path="api/dao/'.$table_name.'>.php">
+	<class name="DAO_'.$class_name.'" />
+	<class name="Model_'.$class_name.'" />
+	<class name="SearchFields_'.$class_name.'" />
+	<class name="View_'.$class_name.'" />
 </file>
-</textarea>
+';
 
-<b>strings.xml</b><br>
-<textarea style="width:98%;height:200px;">
-<!-- <?php echo $class_name; ?> -->
-
-<?php foreach($fields as $field_name => $field_type) { ?>
-<tu tuid='dao.<?php echo $table_name; ?>.<?php echo $field_name; ?>'>
-	<tuv xml:lang="en_US"><seg><?php echo ucwords(str_replace('_',' ',$field_name)); ?></seg></tuv>
+$strings .= '
+<!-- '.$class_name.' -->
+';
+foreach($fields as $field_name => $field_type) {
+$strings .= '
+<tu tuid=\'dao.'.$table_name.'.'.$field_name.'\'>
+	<tuv xml:lang="en_US"><seg>'. ucwords(str_replace('_',' ',$field_name)) .'</seg></tuv>
 </tu>
-<?php } ?>
-</textarea>
+';
+}
+}
 
-<?php } ?>
+echo '<b>plugin.xml</b><br>
+<textarea style="width:98%;height:200px;">'. $plugin .'</textarea>';
+echo '<b>strings.xml</b><br>
+<textarea style="width:98%;height:200px;">'. $strings .'</textarea>';
+ 
+?>
