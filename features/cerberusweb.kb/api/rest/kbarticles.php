@@ -44,11 +44,23 @@ class ChRest_KbArticles extends Extension_RestController implements IExtensionRe
 		
 		$this->error(self::ERRNO_NOT_IMPLEMENTED);
 	}
-	
+
 	function deleteAction($stack) {
-		$this->error(self::ERRNO_NOT_IMPLEMENTED);
+		$worker = $this->getActiveWorker();
+		if(!$worker->hasPriv('core.kb.articles.modify'))
+			$this->error(self::ERRNO_ACL);
+
+		$id = array_shift($stack);
+
+		if(null == ($task = DAO_KbArticle::get($id)))
+			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid Knowledgebase article ID %d", $id));
+
+		DAO_KbArticle::delete($id);
+
+		$result = array('id' => $id);
+		$this->success($result);
 	}
-	
+
 	private function getId($id) {
 		$worker = $this->getActiveWorker();
 		
@@ -59,7 +71,7 @@ class ChRest_KbArticles extends Extension_RestController implements IExtensionRe
 		$container = $this->search(array(
 			array('id', '=', $id),
 		));
-		
+
 		if(is_array($container) && isset($container['results']) && isset($container['results'][$id]))
 			$this->success($container['results'][$id]);
 
@@ -108,8 +120,11 @@ class ChRest_KbArticles extends Extension_RestController implements IExtensionRe
 	function search($filters=array(), $sortToken='id', $sortAsc=1, $page=1, $limit=10) {
 		$worker = $this->getActiveWorker();
 
+		$custom_field_params = $this->_handleSearchBuildParamsCustomFields($filters, CerberusContexts::CONTEXT_KB_ARTICLE);
 		$params = $this->_handleSearchBuildParams($filters);
-		
+
+		$params = array_merge($params, $custom_field_params);
+
 		// Sort
 		$sortBy = $this->translateToken($sortToken, 'search');
 		$sortAsc = !empty($sortAsc) ? true : false;
@@ -288,5 +303,7 @@ class ChRest_KbArticles extends Extension_RestController implements IExtensionRe
 				
 			$this->getId($id);
 		}
-	}	
+	}
+		
 };
+

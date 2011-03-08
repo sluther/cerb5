@@ -349,6 +349,30 @@ abstract class Extension_RestController extends DevblocksExtension {
 // [TODO] Overload
 //	}
 
+	protected function _handleSearchBuildParamsCustomFields(&$filters, $context) {
+		$params = array();
+		// Handle custom fields
+		if(is_array($filters))
+		foreach($filters as $key => $filter) {
+
+			$parts = explode("_",$filter[0],2);
+			if(2==count($parts) && 'custom'==$parts[0] && is_numeric($parts[1])) {
+				// Custom Fields
+				$fields = DAO_CustomField::getByContext($context);
+
+				if(is_array($fields))
+				foreach($fields as $field_id => $fieldData) {
+					if($field_id === intval($parts[1])) {
+						$field = 'cf_'.$field_id;
+						unset($filters[$key]);
+					}
+				}
+				$params[$field] = new DevblocksSearchCriteria($field, $filter[1], $filter[2]);
+			}
+		}
+		return $params;
+	}
+
 	protected function _handleSearchBuildParams($filters) {
 		// Criteria
 		$params = array();
@@ -398,6 +422,22 @@ abstract class Extension_RestController extends DevblocksExtension {
 	}
 	
 	protected function _handleRequiredFields($required, $fields) {
+		
+		// ----
+//		$logmessage = "[".date("m/d/Y H:i:s")."] ". print_r($required, 1) . "\n";
+//		$filename = 'restapi.log';
+//		$handle = fopen($filename, 'a');
+//		fwrite($handle, $logmessage);
+//		fclose($handle);
+//		// ----
+//		
+//		// ----
+//		$logmessage = "[".date("m/d/Y H:i:s")."] ". print_r($fields, 1) . "\n";
+//		$filename = 'restapi.log';
+//		$handle = fopen($filename, 'a');
+//		fwrite($handle, $logmessage);
+//		fclose($handle);
+		// ----
 		// Check required fields
 		if(is_array($required))
 		foreach($required as $reqfield)

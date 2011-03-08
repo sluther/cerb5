@@ -1,5 +1,5 @@
 <?php
-class ChRest_Addresses extends Extension_RestController implements IExtensionRestController {
+class ChRest_Comments extends Extension_RestController implements IExtensionRestController {
 	function getAction($stack) {
 		@$action = array_shift($stack);
 		
@@ -48,27 +48,25 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 	}
 	
 	function deleteAction($stack) {
-		$worker = $this->getActiveWorker();
-		if(!$worker->hasPriv('core.addybook.person.actions.delete'))
-			$this->error(self::ERRNO_ACL);
-
 		$id = array_shift($stack);
-
-		if(null == ($task = DAO_Address::get($id)))
-			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid address ID %d", $id));
-
-		DAO_Address::delete($id);
-
-		$result = array('id' => $id);
-		$this->success($result);
+		$container = $this->search(array(
+			array('id', '=', $id),			
+		));
+		
+		if(is_array($container) && isset($container['results']) && isset($container['results'][$id])) {
+			DAO_Comment::delete($id);
+			$this->success(array('message' => sprintf("Comment '%d' was removed", $id)));
+		} else {
+			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid comment id '%d'", $id));
+		}
 	}
 	
 	private function getId($id) {
 		$worker = $this->getActiveWorker();
 		
-		// ACL
-		if(!$worker->hasPriv('core.addybook'))
-			$this->error(self::ERRNO_ACL);
+//		// ACL
+//		if(!$worker->hasPriv('core.addybook'))
+//			$this->error(self::ERRNO_ACL);
 
 		$container = $this->search(array(
 			array('id', '=', $id),
@@ -78,7 +76,7 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 			$this->success($container['results'][$id]);
 
 		// Error
-		$this->error(self::ERRNO_CUSTOM, sprintf("Invalid address id '%d'", $id));
+		$this->error(self::ERRNO_CUSTOM, sprintf("Invalid comment id '%d'", $id));
 	}
 
 	function translateToken($token, $type='dao') {
@@ -86,25 +84,19 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 		
 		if('dao'==$type) {
 			$tokens = array(
-				'email' => DAO_Address::EMAIL,
-				'first_name' => DAO_Address::FIRST_NAME,
-				'is_banned' => DAO_Address::IS_BANNED,
-				'last_name' => DAO_Address::LAST_NAME,
-//				'num_nonspam' => DAO_Address::NUM_NONSPAM,
-//				'num_spam' => DAO_Address::NUM_SPAM,
-				'org_id' => DAO_Address::CONTACT_ORG_ID,
+				'context' => DAO_Comment::CONTEXT,
+				'context_id' => DAO_Comment::CONTEXT_ID,
+				'address_id' => DAO_Comment::ADDRESS_ID,
+				'comment' => DAO_Comment::COMMENT,
+				'created' => DAO_Comment::CREATED,
 			);
 		} else {
 			$tokens = array(
-				'id' => SearchFields_Address::ID,
-				'email' => SearchFields_Address::EMAIL,
-				'first_name' => SearchFields_Address::FIRST_NAME,
-				'is_banned' => SearchFields_Address::IS_BANNED,
-				'last_name' => SearchFields_Address::LAST_NAME,
-				'num_nonspam' => SearchFields_Address::NUM_NONSPAM,
-				'num_spam' => SearchFields_Address::NUM_SPAM,
-				'org_id' => SearchFields_Address::CONTACT_ORG_ID,
-				'org_name' => SearchFields_Address::ORG_NAME,
+				'id' => SearchFields_Comment::ID,
+				'context' => SearchFields_Comment::CONTEXT,
+				'context_id' => SearchFields_Comment::CONTEXT_ID,
+				'address_id' => SearchFields_Comment::ADDRESS_ID,
+				'comment' => SearchFields_Comment::COMMENT,
 			);
 		}
 		
@@ -125,11 +117,8 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 	function search($filters=array(), $sortToken='email', $sortAsc=1, $page=1, $limit=10) {
 		$worker = $this->getActiveWorker();
 
-		$custom_field_params = $this->_handleSearchBuildParamsCustomFields($filters, CerberusContexts::CONTEXT_ADDRESS);
 		$params = $this->_handleSearchBuildParams($filters);
 		
-		$params = array_merge($params, $custom_field_params);
-
 		// (ACL) Add worker group privs
 		if(!$worker->is_superuser) {
 			$memberships = $worker->getMemberships();
@@ -145,7 +134,7 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 		$sortAsc = !empty($sortAsc) ? true : false;
 		
 		// Search
-		list($results, $total) = DAO_Address::search(
+		list($results, $total) = DAO_Comment::search(
 			array(),
 			$params,
 			$limit,
@@ -230,15 +219,16 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 		$worker = $this->getActiveWorker();
 		
 		// ACL
-		if(!$worker->hasPriv('core.addybook.addy.actions.update'))
-			$this->error(self::ERRNO_ACL);
+//		if(!$worker->hasPriv('core.addybook.addy.actions.update'))
+//			$this->error(self::ERRNO_ACL);
 		
 		$postfields = array(
-			'email' => 'string',
-			'first_name' => 'string',
-			'is_banned' => 'bit',
-			'last_name' => 'string',
-			'org_id' => 'integer',
+			'context' => 'string',
+			'context_id' => 'integer',
+			'address' => 'string',
+			'address_id' => 'integer',
+			'created' => 'integer',
+			'comment' => 'string',
 		);
 
 		$fields = array();
@@ -248,7 +238,26 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 				continue;
 				
 			@$value = DevblocksPlatform::importGPC($_POST[$postfield], 'string', '');
-				
+			
+			switch($postfield) {
+				case 'address':
+					if(null != ($lookup = DAO_Address::lookupAddress($value, true))) {
+						unset($postfields['address']);
+						$postfield = 'address_id';
+						$value = $lookup->id;
+					}
+					break;
+				case 'context':
+					switch($_POST[$postfield]) {
+						case CerberusContexts::CONTEXT_TICKET:
+							if(!$worker->hasPriv('core.display.actions.comment')) {
+								$this->error(self::ERRNO_ACL);
+							}
+							break;
+					break;
+				}
+			}
+			
 			if(null == ($field = self::translateToken($postfield, 'dao'))) {
 				$this->error(self::ERRNO_CUSTOM, sprintf("'%s' is not a valid field.", $postfield));
 			}
@@ -263,17 +272,17 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 			$fields[$field] = $value;
 		}
 		
+		// Defaults
+		if(!isset($fields[DAO_Comment::CREATED]))
+			$fields[DAO_Comment::CREATED] = time();
+		
 		// Check required fields
-		$reqfields = array(DAO_Address::EMAIL);
+//		$reqfields = array(DAO_Address::EMAIL);
+		$reqfields = array(DAO_Comment::CONTEXT, DAO_Comment::CONTEXT_ID, DAO_Comment::ADDRESS_ID, DAO_Comment::COMMENT, DAO_Comment::CREATED);
 		$this->_handleRequiredFields($reqfields, $fields);
 		
 		// Create
-		if(false != ($id = DAO_Address::create($fields))) {
-			// Handle custom fields
-			$customfields = $this->_handleCustomFields($_POST);
-			if(is_array($customfields))
-				DAO_CustomFieldValue::formatAndSetFieldValues(CerberusContexts::CONTEXT_ADDRESS, $id, $customfields, true, true, true);
-			
+		if(false != ($id = DAO_Comment::create($fields))) {
 			$this->getId($id);
 		}
 	}

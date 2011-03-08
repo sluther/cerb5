@@ -1,19 +1,21 @@
 <?php
-class ChRest_Addresses extends Extension_RestController implements IExtensionRestController {
+class ChRest_KbCategories extends Extension_RestController implements IExtensionRestController {
 	function getAction($stack) {
+		
 		@$action = array_shift($stack);
 		
 		// Looking up a single ID?
 		if(is_numeric($action)) {
+			
 			$this->getId(intval($action));
 			
 		} else { // actions
 			switch($action) {
-				default:
-					$this->error(self::ERRNO_NOT_IMPLEMENTED);
-					break;
+	
 			}
 		}
+		
+		$this->error(self::ERRNO_NOT_IMPLEMENTED);
 	}
 	
 	function putAction($stack) {
@@ -25,11 +27,10 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 			
 		} else { // actions
 			switch($action) {
-				default:
-					$this->error(self::ERRNO_NOT_IMPLEMENTED);
-					break;
 			}
 		}
+		
+		$this->error(self::ERRNO_NOT_IMPLEMENTED);
 	}
 	
 	function postAction($stack) {
@@ -49,15 +50,16 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 	
 	function deleteAction($stack) {
 		$worker = $this->getActiveWorker();
-		if(!$worker->hasPriv('core.addybook.person.actions.delete'))
+
+		if(!$worker->hasPriv('core.kb.topics.modify'))
 			$this->error(self::ERRNO_ACL);
 
 		$id = array_shift($stack);
+		
+		if(null == ($category = DAO_KbCategory::get($id)))
+			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid Knowledgebase category id %d", $id));
 
-		if(null == ($task = DAO_Address::get($id)))
-			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid address ID %d", $id));
-
-		DAO_Address::delete($id);
+		DAO_KbCategory::delete($id);
 
 		$result = array('id' => $id);
 		$this->success($result);
@@ -67,18 +69,18 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 		$worker = $this->getActiveWorker();
 		
 		// ACL
-		if(!$worker->hasPriv('core.addybook'))
+		if(!$worker->hasPriv('plugin.cerberusweb.kb'))
 			$this->error(self::ERRNO_ACL);
 
 		$container = $this->search(array(
 			array('id', '=', $id),
 		));
-		
+
 		if(is_array($container) && isset($container['results']) && isset($container['results'][$id]))
 			$this->success($container['results'][$id]);
 
 		// Error
-		$this->error(self::ERRNO_CUSTOM, sprintf("Invalid address id '%d'", $id));
+		$this->error(self::ERRNO_CUSTOM, sprintf("Invalid category id '%d'", $id));
 	}
 
 	function translateToken($token, $type='dao') {
@@ -86,25 +88,15 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 		
 		if('dao'==$type) {
 			$tokens = array(
-				'email' => DAO_Address::EMAIL,
-				'first_name' => DAO_Address::FIRST_NAME,
-				'is_banned' => DAO_Address::IS_BANNED,
-				'last_name' => DAO_Address::LAST_NAME,
-//				'num_nonspam' => DAO_Address::NUM_NONSPAM,
-//				'num_spam' => DAO_Address::NUM_SPAM,
-				'org_id' => DAO_Address::CONTACT_ORG_ID,
+				'id' => DAO_KbCategory::ID,
+				'parent_id' => DAO_KbCategory::PARENT_ID,
+				'name' => DAO_KbCategory::NAME,
 			);
 		} else {
 			$tokens = array(
-				'id' => SearchFields_Address::ID,
-				'email' => SearchFields_Address::EMAIL,
-				'first_name' => SearchFields_Address::FIRST_NAME,
-				'is_banned' => SearchFields_Address::IS_BANNED,
-				'last_name' => SearchFields_Address::LAST_NAME,
-				'num_nonspam' => SearchFields_Address::NUM_NONSPAM,
-				'num_spam' => SearchFields_Address::NUM_SPAM,
-				'org_id' => SearchFields_Address::CONTACT_ORG_ID,
-				'org_name' => SearchFields_Address::ORG_NAME,
+				'id' => SearchFields_KbCategory::ID,
+				'parent_id' => SearchFields_KbCategory::PARENT_ID,
+				'name' => SearchFields_KbCategory::NAME,
 			);
 		}
 		
@@ -117,35 +109,22 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 	function getContext($id) {
 		$labels = array();
 		$values = array();
-		$context = CerberusContexts::getContext(CerberusContexts::CONTEXT_ADDRESS, $id, $labels, $values, null, true);
+		$context = CerberusContexts::getContext(CerberusContexts::CONTEXT_KB_CATEGORY, $id, $labels, $values, null, true);
 
 		return $values;
 	}
 	
-	function search($filters=array(), $sortToken='email', $sortAsc=1, $page=1, $limit=10) {
+	function search($filters=array(), $sortToken='id', $sortAsc=1, $page=1, $limit=10) {
 		$worker = $this->getActiveWorker();
 
-		$custom_field_params = $this->_handleSearchBuildParamsCustomFields($filters, CerberusContexts::CONTEXT_ADDRESS);
 		$params = $this->_handleSearchBuildParams($filters);
-		
-		$params = array_merge($params, $custom_field_params);
-
-		// (ACL) Add worker group privs
-		if(!$worker->is_superuser) {
-			$memberships = $worker->getMemberships();
-			$params['tmp_worker_memberships'] = new DevblocksSearchCriteria(
-				SearchFields_Ticket::TICKET_TEAM_ID,
-				'in',
-				(!empty($memberships) ? array_keys($memberships) : array(0))
-			);
-		}
 		
 		// Sort
 		$sortBy = $this->translateToken($sortToken, 'search');
 		$sortAsc = !empty($sortAsc) ? true : false;
 		
 		// Search
-		list($results, $total) = DAO_Address::search(
+		list($results, $total) = DAO_KbCategory::search(
 			array(),
 			$params,
 			$limit,
@@ -172,22 +151,35 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 		return $container;		
 	}
 	
-	function putId($id) {
+	function postSearch() {
 		$worker = $this->getActiveWorker();
 		
 		// ACL
-		if(!$worker->hasPriv('core.addybook.addy.actions.update'))
+		if(!$worker->hasPriv('plugin.cerberusweb.kb'))
 			$this->error(self::ERRNO_ACL);
+
+		$container = $this->_handlePostSearch();
+		
+		$this->success($container);
+	}
+	
+	function putId($id) {
+		$worker = $this->getActiveWorker();
 		
 		// Validate the ID
-		if(null == DAO_Address::get($id))
-			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid address ID '%d'", $id));
+		if(null == ($article = DAO_KbArticle::get($id)))
+			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid category ID '%d'", $id));
+			
+		// ACL
+		if(!($worker->hasPriv('core.kb.articles.modify')))
+			$this->error(self::ERRNO_ACL);
 			
 		$putfields = array(
-			'first_name' => 'string',
-			'is_banned' => 'bit',
-			'last_name' => 'string',
-			'org_id' => 'integer',
+			'content' => 'string',
+			'format' => 'integer',
+			'title' => 'string',
+			'updated' => 'timestamp',
+			'views' => 'integer',
 		);
 
 		$fields = array();
@@ -204,25 +196,37 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 			
 			// Sanitize
 			$value = DevblocksPlatform::importVar($value, $type);
-
-			// Overrides
-			switch($field) {
-			}
+						
+//			switch($field) {
+//				case DAO_Worker::PASSWORD:
+//					$value = md5($value);
+//					break;
+//			}
 			
 			$fields[$field] = $value;
 		}
 		
+		if(!isset($fields[DAO_KbArticle::UPDATED]))
+			$fields[DAO_KbArticle::UPDATED] = time();
+		
 		// Handle custom fields
 		$customfields = $this->_handleCustomFields($_POST);
 		if(is_array($customfields))
-			DAO_CustomFieldValue::formatAndSetFieldValues(CerberusContexts::CONTEXT_ADDRESS, $id, $customfields, true, true, true);
+			DAO_CustomFieldValue::formatAndSetFieldValues(CerberusContexts::CONTEXT_KB_ARTICLE, $id, $customfields, true, true, true);
 		
 		// Check required fields
 //		$reqfields = array(DAO_Address::EMAIL);
 //		$this->_handleRequiredFields($reqfields, $fields);
 
 		// Update
-		DAO_Address::update($id, $fields);
+		DAO_KbArticle::update($id, $fields);
+		
+		// Handle delta categories
+		if(isset($_POST['category_id'])) {
+			$category_ids = !is_array($_POST['category_id']) ? array($_POST['category_id']) : $_POST['category_id'];
+			DAO_KbArticle::setCategories($id, $category_ids, false);
+		}
+		
 		$this->getId($id);
 	}
 	
@@ -230,18 +234,16 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 		$worker = $this->getActiveWorker();
 		
 		// ACL
-		if(!$worker->hasPriv('core.addybook.addy.actions.update'))
+		if(!$worker->hasPriv('core.kb.articles.modify'))
 			$this->error(self::ERRNO_ACL);
 		
 		$postfields = array(
-			'email' => 'string',
-			'first_name' => 'string',
-			'is_banned' => 'bit',
-			'last_name' => 'string',
-			'org_id' => 'integer',
+			'name' => 'string',
+			'parent_id' => 'integer',
 		);
 
 		$fields = array();
+
 		
 		foreach($postfields as $postfield => $type) {
 			if(!isset($_POST[$postfield]))
@@ -252,41 +254,46 @@ class ChRest_Addresses extends Extension_RestController implements IExtensionRes
 			if(null == ($field = self::translateToken($postfield, 'dao'))) {
 				$this->error(self::ERRNO_CUSTOM, sprintf("'%s' is not a valid field.", $postfield));
 			}
-
+			
 			// Sanitize
 			$value = DevblocksPlatform::importVar($value, $type);
 			
-			// Overrides
-			switch($field) {
-			}
+//			switch($field) {
+//				case DAO_Worker::PASSWORD:
+//					$value = md5($value);
+//					break;
+//			}
 			
 			$fields[$field] = $value;
 		}
 		
+		// Defaults
+		if(!isset($fields[DAO_KbCategory::PARENT_ID]))
+			$fields[DAO_KbCategory::PARENT_ID] = '0';
+
+			
 		// Check required fields
-		$reqfields = array(DAO_Address::EMAIL);
+		$reqfields = array(
+			DAO_KbCategory::NAME,  
+		);
+
 		$this->_handleRequiredFields($reqfields, $fields);
 		
 		// Create
-		if(false != ($id = DAO_Address::create($fields))) {
+		if(false != ($id = DAO_KbCategory::create($fields))) {
 			// Handle custom fields
 			$customfields = $this->_handleCustomFields($_POST);
 			if(is_array($customfields))
-				DAO_CustomFieldValue::formatAndSetFieldValues(CerberusContexts::CONTEXT_ADDRESS, $id, $customfields, true, true, true);
+				DAO_CustomFieldValue::formatAndSetFieldValues(CerberusContexts::CONTEXT_KB_CATEGORY, $id, $customfields, true, true, true);
 			
+			// Handle delta categories
+			if(isset($_POST['category_id'])) {
+				$category_ids = !is_array($_POST['category_id']) ? array($_POST['category_id']) : $_POST['category_id'];
+				DAO_KbArticle::setCategories($id, $category_ids, false);
+			}
+				
 			$this->getId($id);
 		}
-	}
-	
-	function postSearch() {
-		$worker = $this->getActiveWorker();
-		
-		// ACL
-		if(!$worker->hasPriv('core.addybook'))
-			$this->error(self::ERRNO_ACL);
+	}	
 
-		$container = $this->_handlePostSearch();
-		
-		$this->success($container);
-	}
 };

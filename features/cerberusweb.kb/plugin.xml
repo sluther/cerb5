@@ -32,6 +32,7 @@
 			<class name="Model_KbCategory" />
 			<class name="Search_KbArticle" />
 			<class name="SearchFields_KbArticle" />
+            <class name="SearchFields_KbCategory" />
 			<class name="View_KbArticle" />
 		</file>
         <file path="api/sc/kb.php">
@@ -90,6 +91,14 @@
 			</params>
 		</extension>	
 	
+    	<extension point="devblocks.context">
+			<id>cerberusweb.contexts.kb_category</id>
+			<name>Knowledgebase Category</name>
+			<class>
+				<file>api/App.php</file>
+				<name>Context_KbCategory</name>
+			</class>
+		</extension>	
 		<!-- Pages -->
 	
 		<extension point="cerberusweb.page">
@@ -243,6 +252,16 @@
 				<param key="uri" value="kbarticles" />
 			</params>
 		</extension>		
-		
+		<extension point="cerberusweb.rest.controller">
+			<id>cerberusweb.rest.controller.kbcategories</id>
+			<name>KB Categories</name>
+			<class>
+				<file>api/rest/kbcategories.php</file>
+				<name>ChRest_KbCategories</name>
+			</class>
+			<params>
+				<param key="uri" value="kbcategories" />
+			</params>
+		</extension>	
 	</extensions>
 </plugin>

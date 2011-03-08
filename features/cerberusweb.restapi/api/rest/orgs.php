@@ -58,7 +58,19 @@ class ChRest_Orgs extends Extension_RestController implements IExtensionRestCont
 	}
 	
 	function deleteAction($stack) {
-		$this->error(self::ERRNO_NOT_IMPLEMENTED);
+		$worker = $this->getActiveWorker();
+		if(!$worker->hasPriv('core.addybook.org.actions.delete'))
+			$this->error(self::ERRNO_ACL);
+
+		$id = array_shift($stack);
+
+		if(null == ($task = DAO_ContactOrg::get($id)))
+			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid organization ID %d", $id));
+
+		DAO_ContactOrg::delete($id);
+
+		$result = array('id' => $id);
+		$this->success($result);
 	}
 	
 	function getId($id) {
@@ -98,6 +110,14 @@ class ChRest_Orgs extends Extension_RestController implements IExtensionRestCont
 			$tokens = array(
 				'id' => SearchFields_ContactOrg::ID,
 				'name' => SearchFields_ContactOrg::NAME,
+				'street' => DAO_ContactOrg::STREET,
+				'city' => DAO_ContactOrg::CITY,
+				'province' => DAO_ContactOrg::PROVINCE,
+				'postal' => DAO_ContactOrg::POSTAL,
+				'country' => DAO_ContactOrg::COUNTRY,
+				'phone' => DAO_ContactOrg::PHONE,
+				'website' => DAO_ContactOrg::WEBSITE,
+				'created' => DAO_ContactOrg::CREATED,
 			);
 		}
 		

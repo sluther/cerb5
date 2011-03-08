@@ -46,7 +46,20 @@ class ChRest_Workers extends Extension_RestController implements IExtensionRestC
 	}
 	
 	function deleteAction($stack) {
-		$this->error(self::ERRNO_NOT_IMPLEMENTED);
+		// a little hacky - there isn't actually a permission with this key,
+		// but if the user is a superuser then the check will return true
+		$worker = $this->getActiveWorker();
+		if(!$worker->hasPriv('core.worker.delete'))
+			$this->error(self::ERRNO_ACL);
+		$id = array_shift($stack);
+
+		if(null == ($task = DAO_Worker::get($id)))
+			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid worker ID %d", $id));
+
+		DAO_Worker::delete($id);
+
+		$result = array('id' => $id);
+		$this->success($result);
 	}
 	
 	function getContext($id) {
