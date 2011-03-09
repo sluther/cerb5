@@ -2,7 +2,7 @@
 class ChRest_CustomFields extends Extension_RestController implements IExtensionRestController {
 	function getAction($stack) {
 		@$context = array_shift($stack);
-
+				
 		switch($context) {
 			case 'tickets':
 			case 'ticket':
@@ -27,8 +27,13 @@ class ChRest_CustomFields extends Extension_RestController implements IExtension
 				$context = CerberusContexts::CONTEXT_WORKER;
 				break;
 			default:
-				$this->error(self::ERRNO_CUSTOM, sprintf('%s is not a valid custom field object!', $context));
-				exit;			
+				if(null != ($contexts = DevblocksPlatform::getExtensions('devblocks.context'))) {
+					if(!isset($contexts[$context])) {
+						$this->error(self::ERRNO_CUSTOM, sprintf('%s is not a valid custom field object!', $context));		
+					}
+					
+				}
+				break;
 			
 		}
 		

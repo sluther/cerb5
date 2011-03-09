@@ -301,7 +301,12 @@ abstract class Extension_RestController extends DevblocksExtension {
 		$stack = $request->path;
 		
 		// Figure out our format by looking at the last path argument
-		@list($command, $format) = explode('.', array_pop($stack));
+//		@list($command, $format) = implode('.', explode('.', array_pop($stack)));
+		$command = explode('.', array_pop($stack));
+		$format = array_pop($command);
+		$command = implode('.', $command);
+		
+		
 		array_push($stack, $command);
 		if(null != $format)
 			$this->_format = $format;
