@@ -17,19 +17,7 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 	}
 	
 	function putAction($stack) {
-		@$action = array_shift($stack);
-		
-		// Looking up a single ID?
-		if(is_numeric($action)) {
-			$this->putId(intval($action));
-			
-		} else { // actions
-			switch($action) {
-				default:
-					$this->error(self::ERRNO_NOT_IMPLEMENTED);
-					break;
-			}
-		}
+		$this->error(self::ERRNO_NOT_IMPLEMENTED);
 	}
 	
 	function postAction($stack) {
@@ -38,9 +26,6 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 		switch($action) {
 			case 'create':
 				$this->postCreate();
-				break;
-			case 'search':
-				$this->postSearch();
 				break;
 		}
 		
@@ -63,20 +48,16 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 	
 	private function getId($id) {
 		$worker = $this->getActiveWorker();
-		
-//		// ACL
-//		if(!$worker->hasPriv('core.addybook'))
-//			$this->error(self::ERRNO_ACL);
 
-		$container = $this->search(array(
-			array('id', '=', $id),
-		));
-		
-		if(is_array($container) && isset($container['results']) && isset($container['results'][$id]))
-			$this->success($container['results'][$id]);
+		$id = array_shift($stack);
 
-		// Error
-		$this->error(self::ERRNO_CUSTOM, sprintf("Invalid comment id '%d'", $id));
+		if(null == ($comment = DAO_Comment::get($id)))
+			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid comment id %d", $id));
+
+		DAO_Comment::delete($id);
+
+		$result = array('id' => $id);
+		$this->success($result);
 	}
 
 	function translateToken($token, $type='dao') {
@@ -109,7 +90,7 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 	function getContext($id) {
 		$labels = array();
 		$values = array();
-		$context = CerberusContexts::getContext(CerberusContexts::CONTEXT_ADDRESS, $id, $labels, $values, null, true);
+		$context = CerberusContexts::getContext(CerberusContexts::CONTEXT_COMMENT, $id, $labels, $values, null, true);
 
 		return $values;
 	}
@@ -118,16 +99,6 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 		$worker = $this->getActiveWorker();
 
 		$params = $this->_handleSearchBuildParams($filters);
-		
-		// (ACL) Add worker group privs
-		if(!$worker->is_superuser) {
-			$memberships = $worker->getMemberships();
-			$params['tmp_worker_memberships'] = new DevblocksSearchCriteria(
-				SearchFields_Ticket::TICKET_TEAM_ID,
-				'in',
-				(!empty($memberships) ? array_keys($memberships) : array(0))
-			);
-		}
 		
 		// Sort
 		$sortBy = $this->translateToken($sortToken, 'search');
@@ -161,66 +132,8 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 		return $container;		
 	}
 	
-	function putId($id) {
-		$worker = $this->getActiveWorker();
-		
-		// ACL
-		if(!$worker->hasPriv('core.addybook.addy.actions.update'))
-			$this->error(self::ERRNO_ACL);
-		
-		// Validate the ID
-		if(null == DAO_Address::get($id))
-			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid address ID '%d'", $id));
-			
-		$putfields = array(
-			'first_name' => 'string',
-			'is_banned' => 'bit',
-			'last_name' => 'string',
-			'org_id' => 'integer',
-		);
-
-		$fields = array();
-
-		foreach($putfields as $putfield => $type) {
-			if(!isset($_POST[$putfield]))
-				continue;
-			
-			@$value = DevblocksPlatform::importGPC($_POST[$putfield], 'string', '');
-			
-			if(null == ($field = self::translateToken($putfield, 'dao'))) {
-				$this->error(self::ERRNO_CUSTOM, sprintf("'%s' is not a valid field.", $putfield));
-			}
-			
-			// Sanitize
-			$value = DevblocksPlatform::importVar($value, $type);
-
-			// Overrides
-			switch($field) {
-			}
-			
-			$fields[$field] = $value;
-		}
-		
-		// Handle custom fields
-		$customfields = $this->_handleCustomFields($_POST);
-		if(is_array($customfields))
-			DAO_CustomFieldValue::formatAndSetFieldValues(CerberusContexts::CONTEXT_ADDRESS, $id, $customfields, true, true, true);
-		
-		// Check required fields
-//		$reqfields = array(DAO_Address::EMAIL);
-//		$this->_handleRequiredFields($reqfields, $fields);
-
-		// Update
-		DAO_Address::update($id, $fields);
-		$this->getId($id);
-	}
-	
 	function postCreate() {
 		$worker = $this->getActiveWorker();
-		
-		// ACL
-//		if(!$worker->hasPriv('core.addybook.addy.actions.update'))
-//			$this->error(self::ERRNO_ACL);
 		
 		$postfields = array(
 			'context' => 'string',
@@ -277,7 +190,6 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 			$fields[DAO_Comment::CREATED] = time();
 		
 		// Check required fields
-//		$reqfields = array(DAO_Address::EMAIL);
 		$reqfields = array(DAO_Comment::CONTEXT, DAO_Comment::CONTEXT_ID, DAO_Comment::ADDRESS_ID, DAO_Comment::COMMENT, DAO_Comment::CREATED);
 		$this->_handleRequiredFields($reqfields, $fields);
 		
@@ -289,10 +201,6 @@ class ChRest_Comments extends Extension_RestController implements IExtensionRest
 	
 	function postSearch() {
 		$worker = $this->getActiveWorker();
-		
-		// ACL
-		if(!$worker->hasPriv('core.addybook'))
-			$this->error(self::ERRNO_ACL);
 
 		$container = $this->_handlePostSearch();
 		

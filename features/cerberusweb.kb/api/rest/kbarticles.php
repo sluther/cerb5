@@ -52,7 +52,7 @@ class ChRest_KbArticles extends Extension_RestController implements IExtensionRe
 
 		$id = array_shift($stack);
 
-		if(null == ($task = DAO_KbArticle::get($id)))
+		if(null == ($kbarticle = DAO_KbArticle::get($id)))
 			$this->error(self::ERRNO_CUSTOM, sprintf("Invalid Knowledgebase article ID %d", $id));
 
 		DAO_KbArticle::delete($id);

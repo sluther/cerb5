@@ -1348,27 +1348,6 @@ class DAO_KbCategory extends C4_ORMHelper {
 			);
 			
 		$join_sql = "FROM kb_category kbc ";
-
-		// [JAS]: Dynamic table joins
-//		if(isset($tables['katc'])) {
-//			$select_sql .= sprintf(", katc.kb_top_category_id AS %s ",
-//				SearchFields_KbArticle::TOP_CATEGORY_ID
-//			);
-//			$join_sql .= "LEFT JOIN kb_article_to_category katc ON (kb.id=katc.kb_article_id) ";
-//		}
-//		
-//		if(isset($tables['ftkb'])) {
-//			$join_sql .= 'LEFT JOIN fulltext_kb_article ftkb ON (ftkb.id=kb.id) ';
-//		}
-		
-		// Custom field joins
-		list($select_sql, $join_sql, $has_multiple_values) = self::_appendSelectJoinSqlForCustomFieldTables(
-			$tables,
-			$params,
-			'kbc.id',
-			$select_sql,
-			$join_sql
-		);
 		
 		$where_sql = "".
 			(!empty($wheres) ? sprintf("WHERE %s ",implode(' AND ',$wheres)) : "WHERE 1 ");
@@ -1496,12 +1475,9 @@ class SearchFields_KbCategory implements IDevblocksSearchFields {
 			self::NAME => new DevblocksSearchField(self::NAME, 'kbc', 'name', $translate->_('kb_category.name')),
 
 		);
-
-		// Fulltext
-		$tables = DevblocksPlatform::getDatabaseTables();
 		
 		// Custom Fields
-		$fields = DAO_CustomField::getByContext(CerberusContexts::CONTEXT_KB_ARTICLE);
+		$fields = DAO_CustomField::getByContext(CerberusContexts::CONTEXT_KB_CATEGORY);
 		if(is_array($fields))
 		foreach($fields as $field_id => $field) {
 			$key = 'cf_'.$field_id;
@@ -2084,7 +2060,7 @@ class Context_KbCategory extends Extension_DevblocksContext {
 		} else {
 			$category = null;
 		}
-		/* @var $article Model_KbArticle */
+		/* @var $category Model_KbCategory */
 			
 		// Token labels
 		$token_labels = array(
@@ -2107,21 +2083,7 @@ class Context_KbCategory extends Extension_DevblocksContext {
 			$token_values['id'] = $category->id;
 			$token_values['parent_id'] = $category->parent_id;
 			$token_values['name'] = $category->name;
-
-			
-//			// Categories
-//			if(null != ($categories = $article->getCategories()) && is_array($categories)) {
-//				$token_values['categories'] = array();
-//				
-//				foreach($categories as $category_id => $trail) {
-//					foreach($trail as $step_id => $step) {
-//						if(!isset($token_values['categories'][$category_id]))
-//							$token_values['categories'][$category_id] = array();
-//						$token_values['categories'][$category_id][$step_id] = $step->name;
-//					}
-//				}
-//			}
-			
+						
 			$token_values['custom'] = array();
 			
 			$field_values = array_shift(DAO_CustomFieldValue::getValuesByContextIds(CerberusContexts::CONTEXT_KB_CATEGORY, $category->id));
@@ -2159,16 +2121,7 @@ class Context_KbCategory extends Extension_DevblocksContext {
 		$defaults->is_ephemeral = true;
 		$defaults->class_name = $this->getViewClass();
 		$view = C4_AbstractViewLoader::getView($view_id, $defaults);
-//		$view->name = 'Headlines';
-//		$view->view_columns = array(
-//			SearchFields_CallEntry::IS_OUTGOING,
-//			SearchFields_CallEntry::PHONE,
-//			SearchFields_CallEntry::UPDATED_DATE,
-//		);
-		$view->addParams(array(
-			SearchFields_FeedItem::IS_CLOSED => new DevblocksSearchCriteria(SearchFields_FeedItem::IS_CLOSED,'=',0),
-		), true);
-		$view->renderSortBy = SearchFields_FeedItem::CREATED_DATE;
+		$view->renderSortBy = SearchFields_KbCategory::NAME;
 		$view->renderSortAsc = false;
 		$view->renderLimit = 10;
 		$view->renderTemplate = 'contextlinks_chooser';
@@ -2186,19 +2139,8 @@ class Context_KbCategory extends Extension_DevblocksContext {
 		$view = C4_AbstractViewLoader::getView($view_id, $defaults);
 		//$view->name = 'Calls';
 		
-		$params = array();
-		
-		if(!empty($context) && !empty($context_id)) {
-			$params = array(
-				new DevblocksSearchCriteria(SearchFields_FeedItem::CONTEXT_LINK,'=',$context),
-				new DevblocksSearchCriteria(SearchFields_FeedItem::CONTEXT_LINK_ID,'=',$context_id),
-			);
-		}
-		
-		if(isset($options['filter_open']))
-			$params[] = new DevblocksSearchCriteria(SearchFields_FeedItem::IS_CLOSED,'=',0);
-		
-		$view->addParams($params, true);
+//		$params = array();
+//		$view->addParams($params, true);
 		
 		$view->renderTemplate = 'context';
 		C4_AbstractViewLoader::setView($view_id, $view);

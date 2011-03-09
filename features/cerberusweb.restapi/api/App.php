@@ -422,22 +422,6 @@ abstract class Extension_RestController extends DevblocksExtension {
 	}
 	
 	protected function _handleRequiredFields($required, $fields) {
-		
-		// ----
-//		$logmessage = "[".date("m/d/Y H:i:s")."] ". print_r($required, 1) . "\n";
-//		$filename = 'restapi.log';
-//		$handle = fopen($filename, 'a');
-//		fwrite($handle, $logmessage);
-//		fclose($handle);
-//		// ----
-//		
-//		// ----
-//		$logmessage = "[".date("m/d/Y H:i:s")."] ". print_r($fields, 1) . "\n";
-//		$filename = 'restapi.log';
-//		$handle = fopen($filename, 'a');
-//		fwrite($handle, $logmessage);
-//		fclose($handle);
-		// ----
 		// Check required fields
 		if(is_array($required))
 		foreach($required as $reqfield)
